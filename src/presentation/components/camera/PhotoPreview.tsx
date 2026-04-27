@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { RotateCcw, Pencil, Download } from "lucide-react";
 import { Dialog } from "@/presentation/components/ui/Dialog";
 import { Input } from "@/presentation/components/ui/Input";
 
@@ -17,31 +18,35 @@ export function PhotoPreview({ previewUrl, onSave, onEdit, onRetake }: PhotoPrev
 
   return (
     <div className="absolute inset-0 z-20 flex flex-col bg-black">
-      <div className="flex flex-1 items-center justify-center overflow-hidden">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4">
         <img
           src={previewUrl}
           alt="Photo capturée"
-          className="max-h-full max-w-full object-contain"
+          className="max-h-full max-w-full rounded-lg object-contain"
         />
       </div>
-      <div className="flex items-center justify-center gap-4 bg-black/80 px-6 py-6">
+
+      <div className="flex items-center justify-center gap-3 bg-black/80 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:gap-4 sm:px-6">
         <button
           onClick={onRetake}
-          className="rounded-full border-2 border-white px-6 py-3 text-base font-medium text-white transition-colors hover:bg-white/10"
+          className="flex items-center gap-2 rounded-full border-2 border-white px-4 py-2.5 text-sm font-medium text-white transition-colors active:bg-white/10 sm:px-6 sm:py-3 sm:text-base"
         >
-          Reprendre
+          <RotateCcw className="h-4 w-4" />
+          <span className="hidden sm:inline">Reprendre</span>
         </button>
         <button
           onClick={onEdit}
-          className="rounded-full border-2 border-white bg-white/10 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-white/20"
+          className="flex items-center gap-2 rounded-full border-2 border-white bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition-colors active:bg-white/20 sm:px-6 sm:py-3 sm:text-base"
         >
-          Editer
+          <Pencil className="h-4 w-4" />
+          <span className="hidden sm:inline">Editer</span>
         </button>
         <button
           onClick={() => setShowNameDialog(true)}
-          className="rounded-full bg-white px-6 py-3 text-base font-medium text-black transition-colors hover:bg-zinc-200"
+          className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-black transition-colors active:bg-zinc-300 sm:px-6 sm:py-3 sm:text-base"
         >
-          Sauvegarder
+          <Download className="h-4 w-4" />
+          <span className="hidden sm:inline">Sauvegarder</span>
         </button>
       </div>
 

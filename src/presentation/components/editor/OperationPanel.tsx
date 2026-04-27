@@ -22,14 +22,14 @@ export function OperationPanel({
   );
 
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-3 lg:gap-4 lg:px-5 lg:py-4">
       {group.operations.map((op) => {
         const opValues = values[op.id] ?? {};
         const toggleParams = op.params.filter((p) => p.type === "toggle");
         const rangeParams = op.params.filter((p) => p.type === "range");
 
         return (
-          <div key={op.id} className="flex flex-col gap-3">
+          <div key={op.id} className="flex flex-col gap-2.5 lg:gap-3">
             {rangeParams.map((param) => (
               <ParamControl
                 key={param.key}
@@ -39,7 +39,7 @@ export function OperationPanel({
               />
             ))}
             {toggleParams.length > 0 && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {toggleParams.map((param) => (
                   <ParamControl
                     key={param.key}
@@ -57,10 +57,10 @@ export function OperationPanel({
       {hasChanges && (
         <button
           onClick={onResetAll}
-          className="mt-auto flex items-center justify-center gap-2 rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
+          className="flex shrink-0 items-center justify-center gap-2 rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white active:bg-zinc-700"
         >
           <RotateCcw className="h-4 w-4" />
-          Réinitialiser tout
+          Réinitialiser
         </button>
       )}
     </div>

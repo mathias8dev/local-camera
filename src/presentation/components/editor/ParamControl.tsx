@@ -13,7 +13,7 @@ export function ParamControl({ param, value, onChange }: ParamControlProps) {
     return (
       <button
         onClick={() => onChange(value ? 0 : 1)}
-        className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+        className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-colors active:scale-95 ${
           value
             ? "bg-white text-black"
             : "border border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-white"
@@ -25,7 +25,7 @@ export function ParamControl({ param, value, onChange }: ParamControlProps) {
   }
 
   return (
-    <label className="flex flex-col gap-2">
+    <label className="flex flex-col gap-1.5 lg:gap-2">
       <div className="flex items-center justify-between">
         <span className="text-sm text-zinc-300">{param.label}</span>
         <span className="min-w-[3ch] text-right text-sm tabular-nums text-zinc-500">
@@ -39,7 +39,7 @@ export function ParamControl({ param, value, onChange }: ParamControlProps) {
         step={param.step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-zinc-700 accent-white [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+        className="h-2 w-full cursor-pointer touch-pan-x appearance-none rounded-full bg-zinc-700 accent-white [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md"
       />
     </label>
   );

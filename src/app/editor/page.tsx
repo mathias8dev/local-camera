@@ -3,7 +3,7 @@ import { EditorView } from "@/presentation/components/editor/EditorView";
 
 export default function EditorPage() {
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex h-[100dvh] flex-col overflow-hidden">
       <Suspense>
         <EditorView />
       </Suspense>

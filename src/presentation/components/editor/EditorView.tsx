@@ -56,28 +56,30 @@ export function EditorView() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-black lg:flex-row">
-      {/* Header */}
-      <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-4 py-3 lg:left-auto lg:right-auto">
-        <button
-          onClick={() => router.push("/camera")}
-          className="flex items-center gap-2 rounded-full bg-black/50 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/70"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Retour
-        </button>
-      </div>
-
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-black lg:flex-row">
       {/* Canvas area */}
-      <div className="relative flex flex-1 items-center justify-center overflow-hidden p-4 pt-16">
-        <canvas
-          ref={canvasRef}
-          className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
-        />
+      <div className="relative flex min-h-0 flex-1 flex-col lg:flex-1">
+        {/* Header */}
+        <div className="flex items-center px-3 py-2 lg:px-4 lg:py-3">
+          <button
+            onClick={() => router.push("/camera")}
+            className="flex items-center gap-1.5 rounded-full bg-zinc-900/80 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-zinc-800 active:bg-zinc-700"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Retour
+          </button>
+        </div>
+
+        <div className="flex min-h-0 flex-1 items-center justify-center px-4 pb-3">
+          <canvas
+            ref={canvasRef}
+            className="max-h-full max-w-full rounded-lg object-contain"
+          />
+        </div>
       </div>
 
-      {/* Sidebar / Bottom panel */}
-      <div className="flex w-full flex-col border-t border-zinc-800 bg-zinc-950 lg:w-80 lg:border-l lg:border-t-0">
+      {/* Controls panel */}
+      <div className="flex max-h-[40dvh] flex-col border-t border-zinc-800 bg-zinc-950 lg:max-h-none lg:w-80 lg:border-l lg:border-t-0">
         <OperationTabs
           groups={operationGroups}
           activeGroupId={activeGroupId}
@@ -89,10 +91,10 @@ export function EditorView() {
           onParamChange={updateParam}
           onResetAll={resetAll}
         />
-        <div className="border-t border-zinc-800 px-5 py-4">
+        <div className="border-t border-zinc-800 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
             onClick={() => setShowSaveDialog(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 active:bg-zinc-300"
           >
             <Download className="h-4 w-4" />
             Sauvegarder
