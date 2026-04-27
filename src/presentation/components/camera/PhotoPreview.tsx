@@ -1,17 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Photo } from "@/domain/entities/Photo";
 import { Dialog } from "@/presentation/components/ui/Dialog";
 import { Input } from "@/presentation/components/ui/Input";
 
 interface PhotoPreviewProps {
-  photo: Photo;
+  previewUrl: string;
   onSave: (name: string) => void;
   onRetake: () => void;
 }
 
-export function PhotoPreview({ photo, onSave, onRetake }: PhotoPreviewProps) {
+export function PhotoPreview({ previewUrl, onSave, onRetake }: PhotoPreviewProps) {
   const [showNameDialog, setShowNameDialog] = useState(false);
   const [name, setName] = useState("");
 
@@ -19,7 +18,7 @@ export function PhotoPreview({ photo, onSave, onRetake }: PhotoPreviewProps) {
     <div className="absolute inset-0 z-20 flex flex-col bg-black">
       <div className="flex flex-1 items-center justify-center overflow-hidden">
         <img
-          src={photo.dataUrl}
+          src={previewUrl}
           alt="Photo capturée"
           className="max-h-full max-w-full object-contain"
         />

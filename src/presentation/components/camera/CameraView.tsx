@@ -8,7 +8,7 @@ export function CameraView() {
   const {
     videoRef,
     isReady,
-    capturedPhoto,
+    previewUrl,
     error,
     isMirrored,
     onVideoReady,
@@ -63,11 +63,11 @@ export function CameraView() {
         </div>
       )}
 
-      {capturedPhoto && (
-        <PhotoPreview photo={capturedPhoto} onSave={savePhoto} onRetake={retake} />
+      {previewUrl && (
+        <PhotoPreview previewUrl={previewUrl} onSave={savePhoto} onRetake={retake} />
       )}
 
-      {!capturedPhoto && (
+      {!previewUrl && (
         <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-6 bg-gradient-to-t from-black/60 to-transparent px-6 pb-10 pt-16">
           <div className="flex items-center justify-center gap-8">
             <button

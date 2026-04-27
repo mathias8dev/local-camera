@@ -19,7 +19,7 @@ export class CameraService {
     }
   }
 
-  capture(video: HTMLVideoElement, mirrored: boolean): { dataUrl: string; width: number; height: number } {
+  capture(video: HTMLVideoElement, mirrored: boolean): Promise<{ blob: Blob; width: number; height: number }> {
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -29,10 +29,11 @@ export class CameraService {
       ctx.scale(-1, 1);
     }
     ctx.drawImage(video, 0, 0);
-    return {
-      dataUrl: canvas.toDataURL("image/png"),
-      width: canvas.width,
-      height: canvas.height,
-    };
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve({ blob: b, width: canvas.width, height: canvas.height }) : reject(new Error("Capture failed"))),
+        "image/png",
+      );
+    });
   }
 }

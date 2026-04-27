@@ -2,17 +2,26 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CameraService, FacingMode } from "@/data/services/CameraService";
-import { LocalPhotoRepository } from "@/data/repositories/LocalPhotoRepository";
+import { IndexedDBPhotoRepository } from "@/data/repositories/IndexedDBPhotoRepository";
+import { IndexedDBFileStorage } from "@/data/storage/IndexedDBFileStorage";
 import { Photo } from "@/domain/entities/Photo";
 
 const cameraService = new CameraService();
-const photoRepository = new LocalPhotoRepository();
+const fileStorage = new IndexedDBFileStorage();
+const photoRepository = new IndexedDBPhotoRepository(fileStorage);
+
+interface CapturedData {
+  blob: Blob;
+  previewUrl: string;
+  width: number;
+  height: number;
+}
 
 export function useCamera() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [facingMode, setFacingMode] = useState<FacingMode>("environment");
   const [isReady, setIsReady] = useState(false);
-  const [capturedPhoto, setCapturedPhoto] = useState<Photo | null>(null);
+  const [captured, setCaptured] = useState<CapturedData | null>(null);
   const [isMirrored, setIsMirrored] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,46 +45,55 @@ export function useCamera() {
 
   const onVideoReady = useCallback(() => setIsReady(true), []);
 
-  const capture = useCallback(() => {
+  const capture = useCallback(async () => {
     if (!videoRef.current) return;
-    const { dataUrl, width, height } = cameraService.capture(videoRef.current, isMirrored);
-    const photo: Photo = {
-      id: crypto.randomUUID(),
-      name: "",
-      dataUrl,
+    const { blob, width, height } = await cameraService.capture(videoRef.current, isMirrored);
+    setCaptured({
+      blob,
+      previewUrl: URL.createObjectURL(blob),
       width,
       height,
-      createdAt: new Date(),
-    };
-    setCapturedPhoto(photo);
+    });
   }, [isMirrored]);
 
   const savePhoto = useCallback(
-    (name: string) => {
-      if (!capturedPhoto) return;
-      photoRepository.save({ ...capturedPhoto, name });
+    async (name: string) => {
+      if (!captured) return;
+      const photo: Photo = {
+        id: crypto.randomUUID(),
+        name,
+        width: captured.width,
+        height: captured.height,
+        createdAt: new Date(),
+      };
+      await photoRepository.save(photo, captured.blob);
       const link = document.createElement("a");
-      link.href = capturedPhoto.dataUrl;
+      link.href = captured.previewUrl;
       link.download = `${name}.png`;
       link.click();
-      setCapturedPhoto(null);
+      URL.revokeObjectURL(captured.previewUrl);
+      setCaptured(null);
     },
-    [capturedPhoto],
+    [captured],
   );
 
-  const retake = useCallback(() => setCapturedPhoto(null), []);
+  const retake = useCallback(() => {
+    if (captured) URL.revokeObjectURL(captured.previewUrl);
+    setCaptured(null);
+  }, [captured]);
 
   const toggleMirror = useCallback(() => setIsMirrored((prev) => !prev), []);
 
   const switchCamera = useCallback(() => {
     setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
-    setCapturedPhoto(null);
-  }, []);
+    if (captured) URL.revokeObjectURL(captured.previewUrl);
+    setCaptured(null);
+  }, [captured]);
 
   return {
     videoRef,
     isReady,
-    capturedPhoto,
+    previewUrl: captured?.previewUrl ?? null,
     error,
     isMirrored,
     onVideoReady,

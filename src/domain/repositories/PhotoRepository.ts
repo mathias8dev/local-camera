@@ -1,8 +1,9 @@
 import { Photo } from "@/domain/entities/Photo";
 
 export interface PhotoRepository {
-  save(photo: Photo): void;
-  getAll(): Photo[];
-  getById(id: string): Photo | null;
-  delete(id: string): void;
+  save(photo: Photo, imageData: Blob): Promise<void>;
+  getAll(): Promise<Photo[]>;
+  getById(id: string): Promise<Photo | null>;
+  getImageBlob(id: string): Promise<Blob | null>;
+  delete(id: string): Promise<void>;
 }
