@@ -77,6 +77,15 @@ export function useCamera() {
     [captured],
   );
 
+  const sendToEditor = useCallback(async (): Promise<string | null> => {
+    if (!captured) return null;
+    const id = crypto.randomUUID();
+    await fileStorage.save(id, captured.blob);
+    URL.revokeObjectURL(captured.previewUrl);
+    setCaptured(null);
+    return id;
+  }, [captured]);
+
   const retake = useCallback(() => {
     if (captured) URL.revokeObjectURL(captured.previewUrl);
     setCaptured(null);
@@ -99,6 +108,7 @@ export function useCamera() {
     onVideoReady,
     capture,
     savePhoto,
+    sendToEditor,
     retake,
     toggleMirror,
     switchCamera,

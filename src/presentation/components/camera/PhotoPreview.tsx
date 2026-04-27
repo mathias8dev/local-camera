@@ -7,10 +7,11 @@ import { Input } from "@/presentation/components/ui/Input";
 interface PhotoPreviewProps {
   previewUrl: string;
   onSave: (name: string) => void;
+  onEdit: () => void;
   onRetake: () => void;
 }
 
-export function PhotoPreview({ previewUrl, onSave, onRetake }: PhotoPreviewProps) {
+export function PhotoPreview({ previewUrl, onSave, onEdit, onRetake }: PhotoPreviewProps) {
   const [showNameDialog, setShowNameDialog] = useState(false);
   const [name, setName] = useState("");
 
@@ -23,16 +24,22 @@ export function PhotoPreview({ previewUrl, onSave, onRetake }: PhotoPreviewProps
           className="max-h-full max-w-full object-contain"
         />
       </div>
-      <div className="flex items-center justify-center gap-8 bg-black/80 px-6 py-6">
+      <div className="flex items-center justify-center gap-4 bg-black/80 px-6 py-6">
         <button
           onClick={onRetake}
-          className="rounded-full border-2 border-white px-8 py-3 text-base font-medium text-white transition-colors hover:bg-white/10"
+          className="rounded-full border-2 border-white px-6 py-3 text-base font-medium text-white transition-colors hover:bg-white/10"
         >
           Reprendre
         </button>
         <button
+          onClick={onEdit}
+          className="rounded-full border-2 border-white bg-white/10 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-white/20"
+        >
+          Editer
+        </button>
+        <button
           onClick={() => setShowNameDialog(true)}
-          className="rounded-full bg-white px-8 py-3 text-base font-medium text-black transition-colors hover:bg-zinc-200"
+          className="rounded-full bg-white px-6 py-3 text-base font-medium text-black transition-colors hover:bg-zinc-200"
         >
           Sauvegarder
         </button>

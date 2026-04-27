@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCamera } from "@/presentation/hooks/useCamera";
 import { CaptureButton } from "./CaptureButton";
 import { PhotoPreview } from "./PhotoPreview";
 
 export function CameraView() {
+  const router = useRouter();
   const {
     videoRef,
     isReady,
@@ -14,10 +16,16 @@ export function CameraView() {
     onVideoReady,
     capture,
     savePhoto,
+    sendToEditor,
     retake,
     toggleMirror,
     switchCamera,
   } = useCamera();
+
+  const handleEdit = async () => {
+    const id = await sendToEditor();
+    if (id) router.push(`/editor?photoId=${id}`);
+  };
 
   if (error) {
     return (
@@ -64,7 +72,12 @@ export function CameraView() {
       )}
 
       {previewUrl && (
-        <PhotoPreview previewUrl={previewUrl} onSave={savePhoto} onRetake={retake} />
+        <PhotoPreview
+          previewUrl={previewUrl}
+          onSave={savePhoto}
+          onEdit={handleEdit}
+          onRetake={retake}
+        />
       )}
 
       {!previewUrl && (
