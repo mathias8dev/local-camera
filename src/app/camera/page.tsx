@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import { CameraView } from "@/presentation/components/camera/CameraView";
+
+export const metadata: Metadata = {
+  title: "Capture",
+};
 
 export default function CameraPage() {
   return (

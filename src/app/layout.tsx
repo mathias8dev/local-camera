@@ -19,7 +19,10 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Local Camera",
+  title: {
+    default: "Local Camera",
+    template: "%s — Local Camera",
+  },
   description: "Prenez des photos, modifiez-les et transformez-les",
 };
 
