@@ -45,6 +45,7 @@ function getUniforms(
 ): UniformLocations {
   const names = [
     "u_texture",
+    "u_flipY",
     "u_texelSize",
     "u_sharpenStrength",
     "u_contrastStrength",
@@ -150,6 +151,8 @@ export class WebGLPostProcessor {
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, QUAD, gl.STATIC_DRAW);
 
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
     const tex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -168,6 +171,7 @@ export class WebGLPostProcessor {
 
     const params = this.config.enabled ? this.config : PASSTHROUGH;
     gl.uniform1i(uniforms.u_texture, 0);
+    gl.uniform1f(uniforms.u_flipY, -1.0);
     gl.uniform2f(uniforms.u_texelSize, 1 / width, 1 / height);
     gl.uniform1f(uniforms.u_sharpenStrength, params.sharpenStrength);
     gl.uniform1f(uniforms.u_contrastStrength, params.contrastStrength);
@@ -262,6 +266,7 @@ export class WebGLPostProcessor {
 
     const params = this.config.enabled ? this.config : PASSTHROUGH;
     gl.uniform1i(this.uniforms.u_texture, 0);
+    gl.uniform1f(this.uniforms.u_flipY, 1.0);
     gl.uniform2f(
       this.uniforms.u_texelSize,
       1 / gl.drawingBufferWidth,

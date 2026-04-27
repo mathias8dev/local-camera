@@ -1,8 +1,9 @@
 export const VERTEX_SHADER = `
 attribute vec2 a_position;
+uniform float u_flipY;
 varying vec2 v_texCoord;
 void main() {
-  v_texCoord = a_position * 0.5 + 0.5;
+  v_texCoord = vec2(a_position.x * 0.5 + 0.5, a_position.y * u_flipY * 0.5 + 0.5);
   gl_Position = vec4(a_position, 0.0, 1.0);
 }
 `;
