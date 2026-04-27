@@ -12,6 +12,7 @@ export function CameraView() {
     videoRef,
     isReady,
     previewUrl,
+    capturedMirrored,
     error,
     isMirrored,
     onVideoReady,
@@ -57,6 +58,7 @@ export function CameraView() {
       {previewUrl && (
         <PhotoPreview
           previewUrl={previewUrl}
+          isMirrored={capturedMirrored}
           onSave={savePhoto}
           onEdit={handleEdit}
           onRetake={retake}

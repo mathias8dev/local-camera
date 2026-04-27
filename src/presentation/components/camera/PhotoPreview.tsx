@@ -7,12 +7,13 @@ import { Input } from "@/presentation/components/ui/Input";
 
 interface PhotoPreviewProps {
   previewUrl: string;
+  isMirrored: boolean;
   onSave: (name: string) => void;
   onEdit: () => void;
   onRetake: () => void;
 }
 
-export function PhotoPreview({ previewUrl, onSave, onEdit, onRetake }: PhotoPreviewProps) {
+export function PhotoPreview({ previewUrl, isMirrored, onSave, onEdit, onRetake }: PhotoPreviewProps) {
   const [showNameDialog, setShowNameDialog] = useState(false);
   const [name, setName] = useState("");
 
@@ -22,7 +23,7 @@ export function PhotoPreview({ previewUrl, onSave, onEdit, onRetake }: PhotoPrev
         <img
           src={previewUrl}
           alt="Photo capturée"
-          className="max-h-full max-w-full rounded-lg object-contain"
+          className={`max-h-full max-w-full rounded-lg object-contain ${isMirrored ? "scale-x-[-1]" : ""}`}
         />
       </div>
 

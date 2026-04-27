@@ -15,6 +15,7 @@ interface CapturedData {
   previewUrl: string;
   width: number;
   height: number;
+  mirrored: boolean;
 }
 
 export function useCamera() {
@@ -47,18 +48,23 @@ export function useCamera() {
 
   const capture = useCallback(async () => {
     if (!videoRef.current) return;
-    const { blob, width, height } = await cameraService.capture(videoRef.current, isMirrored);
+    const { blob, width, height } = await cameraService.capture(videoRef.current);
     setCaptured({
       blob,
       previewUrl: URL.createObjectURL(blob),
       width,
       height,
+      mirrored: isMirrored,
     });
   }, [isMirrored]);
 
   const savePhoto = useCallback(
     async (name: string) => {
       if (!captured) return;
+      let blob = captured.blob;
+      if (captured.mirrored) {
+        blob = await CameraService.applyMirror(blob, captured.width, captured.height);
+      }
       const photo: Photo = {
         id: crypto.randomUUID(),
         name,
@@ -66,11 +72,13 @@ export function useCamera() {
         height: captured.height,
         createdAt: new Date(),
       };
-      await photoRepository.save(photo, captured.blob);
+      await photoRepository.save(photo, blob);
+      const downloadUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = captured.previewUrl;
-      link.download = `${name}.png`;
+      link.href = downloadUrl;
+      link.download = `${name}.jpg`;
       link.click();
+      URL.revokeObjectURL(downloadUrl);
       URL.revokeObjectURL(captured.previewUrl);
       setCaptured(null);
     },
@@ -80,7 +88,11 @@ export function useCamera() {
   const sendToEditor = useCallback(async (): Promise<string | null> => {
     if (!captured) return null;
     const id = crypto.randomUUID();
-    await fileStorage.save(id, captured.blob);
+    let blob = captured.blob;
+    if (captured.mirrored) {
+      blob = await CameraService.applyMirror(blob, captured.width, captured.height);
+    }
+    await fileStorage.save(id, blob);
     URL.revokeObjectURL(captured.previewUrl);
     setCaptured(null);
     return id;
@@ -103,6 +115,7 @@ export function useCamera() {
     videoRef,
     isReady,
     previewUrl: captured?.previewUrl ?? null,
+    capturedMirrored: captured?.mirrored ?? false,
     error,
     isMirrored,
     onVideoReady,
