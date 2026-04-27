@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FlipHorizontal2, SwitchCamera } from "lucide-react";
+import { FlipHorizontal2, Sparkles, SwitchCamera } from "lucide-react";
 import { useCamera } from "@/presentation/hooks/useCamera";
 import { CaptureButton } from "./CaptureButton";
 import { PhotoPreview } from "./PhotoPreview";
@@ -10,17 +10,20 @@ export function CameraView() {
   const router = useRouter();
   const {
     videoRef,
+    canvasRef,
     isReady,
     previewUrl,
     capturedMirrored,
     error,
     isMirrored,
+    enhanceEnabled,
     onVideoReady,
     capture,
     savePhoto,
     sendToEditor,
     retake,
     toggleMirror,
+    toggleEnhance,
     switchCamera,
   } = useCamera();
 
@@ -31,7 +34,7 @@ export function CameraView() {
 
   if (error) {
     return (
-      <div className="flex h-[100dvh] flex-col items-center justify-center gap-4 bg-black px-6 text-center text-white">
+      <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-black px-6 text-center text-white">
         <SwitchCamera className="h-16 w-16 text-zinc-400" />
         <p className="text-lg">{error}</p>
       </div>
@@ -39,14 +42,19 @@ export function CameraView() {
   }
 
   return (
-    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-black">
+    <div className="relative flex h-dvh flex-col overflow-hidden bg-black">
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted
         onLoadedData={onVideoReady}
-        className={`absolute inset-0 h-full w-full object-cover ${isMirrored ? "scale-x-[-1]" : ""}`}
+        className="absolute inset-0 h-full w-full object-cover opacity-0"
+      />
+
+      <canvas
+        ref={canvasRef}
+        className={`absolute inset-0 z-1 h-full w-full object-cover ${isMirrored ? "scale-x-[-1]" : ""}`}
       />
 
       {!isReady && (
@@ -66,15 +74,24 @@ export function CameraView() {
       )}
 
       {!previewUrl && (
-        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-6 bg-gradient-to-t from-black/60 to-transparent px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-20">
+        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-6 bg-linear-to-t from-black/60 to-transparent px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-20">
           <div className="flex w-full max-w-xs items-center justify-between">
-            <button
-              onClick={toggleMirror}
-              aria-label="Activer/désactiver le miroir"
-              className={`flex h-12 w-12 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${isMirrored ? "bg-white text-black" : "bg-white/20 text-white"}`}
-            >
-              <FlipHorizontal2 className="h-5 w-5" />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={toggleMirror}
+                aria-label="Activer/désactiver le miroir"
+                className={`flex h-12 w-12 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${isMirrored ? "bg-white text-black" : "bg-white/20 text-white"}`}
+              >
+                <FlipHorizontal2 className="h-5 w-5" />
+              </button>
+              <button
+                onClick={toggleEnhance}
+                aria-label="Activer/désactiver les améliorations"
+                className={`flex h-12 w-12 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${enhanceEnabled ? "bg-white text-black" : "bg-white/20 text-white"}`}
+              >
+                <Sparkles className="h-5 w-5" />
+              </button>
+            </div>
             <CaptureButton onCapture={capture} disabled={!isReady} />
             <button
               onClick={switchCamera}

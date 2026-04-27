@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CameraService, FacingMode } from "@/data/services/CameraService";
+import { WebGLPostProcessor } from "@/data/services/webgl/WebGLPostProcessor";
 import { IndexedDBPhotoRepository } from "@/data/repositories/IndexedDBPhotoRepository";
 import { IndexedDBFileStorage } from "@/data/storage/IndexedDBFileStorage";
 import { Photo } from "@/domain/entities/Photo";
@@ -20,38 +21,63 @@ interface CapturedData {
 
 export function useCamera() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const postProcessorRef = useRef<WebGLPostProcessor | null>(null);
   const [facingMode, setFacingMode] = useState<FacingMode>("environment");
   const [isReady, setIsReady] = useState(false);
   const [captured, setCaptured] = useState<CapturedData | null>(null);
   const [isMirrored, setIsMirrored] = useState(false);
+  const [enhanceEnabled, setEnhanceEnabled] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const startCamera = useCallback(async (mode: FacingMode) => {
-    try {
-      setError(null);
-      setIsReady(false);
-      const stream = await cameraService.start(mode);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setError(null);
+        setIsReady(false);
+        const stream = await cameraService.start(facingMode);
+        if (!cancelled && videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Impossible d'accéder à la caméra. Vérifiez les permissions.");
+        }
       }
-    } catch {
-      setError("Impossible d'accéder à la caméra. Vérifiez les permissions.");
-    }
-  }, []);
+    })();
+    return () => {
+      cancelled = true;
+      postProcessorRef.current?.stopPreview();
+      cameraService.stop();
+    };
+  }, [facingMode]);
 
   useEffect(() => {
-    startCamera(facingMode);
-    return () => cameraService.stop();
-  }, [facingMode, startCamera]);
+    return () => postProcessorRef.current?.dispose();
+  }, []);
 
-  const onVideoReady = useCallback(() => setIsReady(true), []);
+  const onVideoReady = useCallback(() => {
+    setIsReady(true);
+    if (!canvasRef.current || !videoRef.current) return;
+    if (!postProcessorRef.current) {
+      postProcessorRef.current = new WebGLPostProcessor();
+      postProcessorRef.current.setConfig({ enabled: enhanceEnabled });
+      postProcessorRef.current.attach(canvasRef.current);
+    }
+    postProcessorRef.current.startPreview(videoRef.current);
+  }, [enhanceEnabled]);
 
   const capture = useCallback(async () => {
     if (!videoRef.current) return;
     const { blob, width, height } = await cameraService.capture(videoRef.current);
+    let enhanced = blob;
+    if (postProcessorRef.current) {
+      enhanced = await postProcessorRef.current.processBlob(blob, width, height);
+    }
     setCaptured({
-      blob,
-      previewUrl: URL.createObjectURL(blob),
+      blob: enhanced,
+      previewUrl: URL.createObjectURL(enhanced),
       width,
       height,
       mirrored: isMirrored,
@@ -105,6 +131,14 @@ export function useCamera() {
 
   const toggleMirror = useCallback(() => setIsMirrored((prev) => !prev), []);
 
+  const toggleEnhance = useCallback(() => {
+    setEnhanceEnabled((prev) => {
+      const next = !prev;
+      postProcessorRef.current?.setConfig({ enabled: next });
+      return next;
+    });
+  }, []);
+
   const switchCamera = useCallback(() => {
     setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
     if (captured) URL.revokeObjectURL(captured.previewUrl);
@@ -113,17 +147,20 @@ export function useCamera() {
 
   return {
     videoRef,
+    canvasRef,
     isReady,
     previewUrl: captured?.previewUrl ?? null,
     capturedMirrored: captured?.mirrored ?? false,
     error,
     isMirrored,
+    enhanceEnabled,
     onVideoReady,
     capture,
     savePhoto,
     sendToEditor,
     retake,
     toggleMirror,
+    toggleEnhance,
     switchCamera,
   };
 }
