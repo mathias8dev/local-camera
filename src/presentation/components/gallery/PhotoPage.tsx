@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useImageColors } from "@/presentation/hooks/useImageColors";
 import { IndexedDBPhotoRepository } from "@/data/repositories/IndexedDBPhotoRepository";
 import { IndexedDBFileStorage } from "@/data/storage/IndexedDBFileStorage";
 import { shareFile, downloadBlob } from "@/data/services/WebShareService";
@@ -222,6 +223,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
   const thumbnailUrl = thumbnailUrls.get(currentPhoto.id);
   const fullUrl = fullUrls.get(currentPhoto.id);
   const isFullLoaded = fullLoaded.has(currentPhoto.id);
+  const bgGradient = useImageColors(thumbnailUrl);
 
   const slideVariants = {
     enter: (dir: number) => ({ x: dir > 0 ? 80 : -80, opacity: 0 }),
@@ -231,10 +233,16 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
 
   return (
     <div
-      className="flex h-dvh flex-col bg-black"
+      className="relative flex h-dvh flex-col bg-black"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      {/* Dynamic background gradient from photo colors */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-30 transition-[background-image] duration-700"
+        style={{ backgroundImage: bgGradient ?? undefined }}
+      />
+      <div className="pointer-events-none absolute inset-0 bg-black/40" />
       {/* Top bar */}
       <motion.div
         className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-3 z-10"
@@ -259,7 +267,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
 
       {/* Image area */}
       <div
-        className="relative flex flex-1 items-center justify-center overflow-hidden"
+        className="relative z-10 flex flex-1 items-center justify-center overflow-hidden"
         key="image-area"
       >
         <motion.div
@@ -319,7 +327,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
 
       {/* Bottom info + actions */}
       <motion.div
-        className="px-4 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+        className="relative z-10 px-4 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05, duration: 0.2 }}

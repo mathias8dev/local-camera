@@ -14,6 +14,7 @@ import {
   Type,
 } from "lucide-react";
 import { useEditor } from "@/presentation/hooks/useEditor";
+import { useImageColors } from "@/presentation/hooks/useImageColors";
 import { operationGroups } from "@/data/operations/registry";
 import { OperationTabs, groupsToTabs, TabEntry } from "./OperationTabs";
 import { OperationPanel } from "./OperationPanel";
@@ -73,6 +74,7 @@ export function EditorView() {
 
   const {
     canvasRef,
+    colorSrc,
     values,
     loading,
     error,
@@ -195,6 +197,8 @@ export function EditorView() {
     router.push("/gallery");
   };
 
+  const bgGradient = useImageColors(colorSrc);
+
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center bg-black">
@@ -221,8 +225,14 @@ export function EditorView() {
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-black lg:flex-row">
       {/* Canvas area */}
       <div className="relative flex min-h-0 flex-1 flex-col lg:flex-1">
+        {/* Dynamic background gradient from photo colors */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-20 transition-[background-image] duration-700"
+          style={{ backgroundImage: bgGradient ?? undefined }}
+        />
+        <div className="pointer-events-none absolute inset-0 bg-black/50" />
         {/* Header */}
-        <div className="flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-3">
+        <div className="relative z-10 flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-3">
           <button
             onClick={() => router.push("/gallery")}
             className="flex items-center gap-1.5 rounded-full bg-zinc-900/80 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-zinc-800 active:bg-zinc-700"
@@ -271,7 +281,7 @@ export function EditorView() {
           </button>
         </div>
 
-        <div className="flex min-h-0 flex-1 items-center justify-center px-4 pb-3">
+        <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center px-4 pb-3">
           <canvas
             ref={canvasRef}
             className="max-h-full max-w-full rounded-lg object-contain"

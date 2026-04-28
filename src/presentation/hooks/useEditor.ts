@@ -85,6 +85,7 @@ export function useEditor(photoId: string | null) {
   const [imageReady, setImageReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [colorSrc, setColorSrc] = useState<string | null>(null);
   // Incremented to force a redraw without changing operation values.
   const [drawTrigger, setDrawTrigger] = useState(0);
 
@@ -133,15 +134,22 @@ export function useEditor(photoId: string | null) {
         setLoading(false);
         return;
       }
+      const thumbUrl = URL.createObjectURL(blob);
+      setColorSrc(thumbUrl);
       const img = new Image();
       img.onload = () => {
         imageRef.current = img;
         setImageReady(true);
         setLoading(false);
-        URL.revokeObjectURL(img.src);
       };
-      img.src = URL.createObjectURL(blob);
+      img.src = thumbUrl;
     });
+    return () => {
+      setColorSrc((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    };
   }, [photoId]);
 
   const draw = useCallback(
@@ -369,6 +377,7 @@ export function useEditor(photoId: string | null) {
 
   return {
     canvasRef,
+    colorSrc,
     values,
     loading,
     error,
