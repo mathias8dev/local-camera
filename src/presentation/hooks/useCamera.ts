@@ -54,7 +54,19 @@ export function useCamera() {
   }, [facingMode]);
 
   useEffect(() => {
-    return () => postProcessorRef.current?.dispose();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && videoRef.current) {
+        videoRef.current.play().catch(() => {});
+        if (postProcessorRef.current && videoRef.current) {
+          postProcessorRef.current.startPreview(videoRef.current);
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      postProcessorRef.current?.dispose();
+    };
   }, []);
 
   const onVideoReady = useCallback(() => {
