@@ -8,13 +8,37 @@ import { Photo } from "@/domain/entities/Photo";
 const fileStorage = new IndexedDBFileStorage();
 const photoRepository = new IndexedDBPhotoRepository(fileStorage);
 
+export interface StorageEstimate {
+  usedMB: number;
+  quotaMB: number;
+  usedFraction: number;
+}
+
 export function useGallery() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [thumbnailUrls, setThumbnailUrls] = useState<Map<string, string>>(
     new Map(),
   );
   const [loading, setLoading] = useState(true);
+  const [storageEstimate, setStorageEstimate] =
+    useState<StorageEstimate | null>(null);
   const urlsRef = useRef<Map<string, string>>(new Map());
+
+  const refreshStorageEstimate = useCallback(async () => {
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.storage?.estimate
+    )
+      return;
+    const estimate = await navigator.storage.estimate();
+    const usedMB = (estimate.usage ?? 0) / 1024 / 1024;
+    const quotaMB = (estimate.quota ?? 0) / 1024 / 1024;
+    setStorageEstimate({
+      usedMB,
+      quotaMB,
+      usedFraction: quotaMB > 0 ? usedMB / quotaMB : 0,
+    });
+  }, []);
 
   const loadPhotos = useCallback(async () => {
     setLoading(true);
@@ -35,7 +59,8 @@ export function useGallery() {
     urlsRef.current = urls;
     setThumbnailUrls(urls);
     setLoading(false);
-  }, []);
+    await refreshStorageEstimate();
+  }, [refreshStorageEstimate]);
 
   useEffect(() => {
     loadPhotos();
@@ -52,13 +77,62 @@ export function useGallery() {
       urlsRef.current.delete(id);
       setThumbnailUrls(new Map(urlsRef.current));
       setPhotos((prev) => prev.filter((p) => p.id !== id));
+      await refreshStorageEstimate();
+    },
+    [refreshStorageEstimate],
+  );
+
+  const getFullBlob = useCallback(
+    async (id: string): Promise<Blob | null> => {
+      return photoRepository.getImageBlob(id);
     },
     [],
   );
 
-  const getFullBlob = useCallback(async (id: string): Promise<Blob | null> => {
-    return photoRepository.getImageBlob(id);
-  }, []);
+  const importPhotos = useCallback(
+    async (
+      files: FileList,
+      onProgress?: (done: number, total: number) => void,
+    ) => {
+      const fileArr = Array.from(files);
+      let done = 0;
+      for (const file of fileArr) {
+        try {
+          const blob: Blob = file;
+          const bitmap = await createImageBitmap(blob);
+          const width = bitmap.width;
+          const height = bitmap.height;
+          bitmap.close();
 
-  return { photos, thumbnailUrls, loading, deletePhoto, getFullBlob, refresh: loadPhotos };
+          const id = `import-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          const name = file.name.replace(/\.[^.]+$/, "");
+          const photo: Photo = {
+            id,
+            name,
+            width,
+            height,
+            createdAt: new Date(file.lastModified || Date.now()),
+          };
+          await photoRepository.save(photo, blob);
+        } catch {
+          // skip unreadable files
+        }
+        done++;
+        onProgress?.(done, fileArr.length);
+      }
+      await loadPhotos();
+    },
+    [loadPhotos],
+  );
+
+  return {
+    photos,
+    thumbnailUrls,
+    loading,
+    storageEstimate,
+    deletePhoto,
+    getFullBlob,
+    importPhotos,
+    refresh: loadPhotos,
+  };
 }

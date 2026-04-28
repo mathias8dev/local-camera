@@ -67,6 +67,10 @@ export class CameraService {
     }
   }
 
+  getStream(): MediaStream | null {
+    return this.stream;
+  }
+
   getResolutions(): Resolution[] {
     return this.resolutions;
   }

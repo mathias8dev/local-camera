@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Share2, Download, Trash2 } from "lucide-react";
+import { Pencil, Share2, Download, Trash2, Check } from "lucide-react";
 import { Photo } from "@/domain/entities/Photo";
 import { Dialog } from "@/presentation/components/ui/Dialog";
 
@@ -18,6 +18,11 @@ interface GalleryCardProps {
   onShare: () => void;
   onDownload: () => void;
   onDelete: () => void;
+  // Select mode
+  selectMode?: boolean;
+  selected?: boolean;
+  onSelect?: () => void;
+  onOpen?: () => void;
 }
 
 export function GalleryCard({
@@ -27,12 +32,27 @@ export function GalleryCard({
   onShare,
   onDownload,
   onDelete,
+  selectMode = false,
+  selected = false,
+  onSelect,
+  onOpen,
 }: GalleryCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  const handleCardClick = () => {
+    if (selectMode) {
+      onSelect?.();
+    } else {
+      onOpen?.();
+    }
+  };
+
   return (
     <>
-      <div className="group relative overflow-hidden rounded-xl bg-zinc-900">
+      <div
+        className="group relative overflow-hidden rounded-xl bg-zinc-900 cursor-pointer"
+        onClick={handleCardClick}
+      >
         <div className="aspect-square">
           {thumbnailUrl ? (
             <img
@@ -47,34 +67,68 @@ export function GalleryCard({
           )}
         </div>
 
-        <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100 active:opacity-100">
-          <div className="flex justify-center gap-1 px-2 pb-2">
-            <button
-              onClick={onEdit}
-              className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm active:bg-white/30"
+        {/* Select mode overlay */}
+        {selectMode && (
+          <div
+            className={`absolute inset-0 transition-colors ${
+              selected ? "bg-blue-500/30" : "bg-transparent"
+            }`}
+          >
+            <div
+              className={`absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors ${
+                selected
+                  ? "border-blue-400 bg-blue-500"
+                  : "border-white/60 bg-black/30"
+              }`}
             >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={onShare}
-              className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm active:bg-white/30"
-            >
-              <Share2 className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={onDownload}
-              className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm active:bg-white/30"
-            >
-              <Download className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="rounded-full bg-red-500/80 p-2 text-white backdrop-blur-sm active:bg-red-600"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+              {selected && <Check className="h-3.5 w-3.5 text-white" />}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Action overlay (only in non-select mode) */}
+        {!selectMode && (
+          <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100 active:opacity-100">
+            <div className="flex justify-center gap-1 px-2 pb-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
+                className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm active:bg-white/30"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShare();
+                }}
+                className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm active:bg-white/30"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDownload();
+                }}
+                className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm active:bg-white/30"
+              >
+                <Download className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConfirmDelete(true);
+                }}
+                className="rounded-full bg-red-500/80 p-2 text-white backdrop-blur-sm active:bg-red-600"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="px-2.5 py-2">
           <p className="truncate text-sm font-medium text-white">

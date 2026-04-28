@@ -20,10 +20,20 @@ interface CapturedData {
   mirrored: boolean;
 }
 
+export type TimerMode = 0 | 3 | 10;
+
+export interface ZoomCapabilities {
+  min: number;
+  max: number;
+  step: number;
+}
+
 export function useCamera() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const postProcessorRef = useRef<WebGLPostProcessor | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [facingMode, setFacingMode] = useState<FacingMode>("environment");
   const [isReady, setIsReady] = useState(false);
   const [captured, setCaptured] = useState<CapturedData | null>(null);
@@ -33,18 +43,61 @@ export function useCamera() {
   const [selectedResolution, setSelectedResolution] = useState<Resolution | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Feature 1: Grid overlay
+  const [showGrid, setShowGrid] = useState(false);
+
+  // Feature 2: Torch/flash
+  const [torchEnabled, setTorchEnabled] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
+
+  // Feature 3: Timer
+  const [timerMode, setTimerMode] = useState<TimerMode>(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  // Feature 4: Pinch-to-zoom
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [zoomCapabilities, setZoomCapabilities] = useState<ZoomCapabilities | null>(null);
+  const [showZoomIndicator, setShowZoomIndicator] = useState(false);
+  const zoomIndicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         setError(null);
         setIsReady(false);
+        setTorchEnabled(false);
+        setTorchSupported(false);
+        setZoomLevel(1);
+        setZoomCapabilities(null);
+
         const stream = await cameraService.start(facingMode);
         if (!cancelled && videoRef.current) {
           videoRef.current.srcObject = stream;
           const res = cameraService.getResolutions();
           setResolutions(res);
           if (res.length > 0) setSelectedResolution(res[0]);
+
+          // Check torch and zoom support
+          const track = stream.getVideoTracks()[0];
+          if (track) {
+            const caps = track.getCapabilities() as MediaTrackCapabilities & {
+              torch?: boolean;
+              zoom?: { min: number; max: number; step: number };
+            };
+
+            if (caps.torch) {
+              setTorchSupported(true);
+            }
+
+            if (caps.zoom) {
+              setZoomCapabilities({
+                min: caps.zoom.min,
+                max: caps.zoom.max,
+                step: caps.zoom.step,
+              });
+            }
+          }
         }
       } catch {
         if (!cancelled) {
@@ -75,6 +128,13 @@ export function useCamera() {
     };
   }, []);
 
+  // Cleanup countdown on unmount
+  useEffect(() => {
+    return () => {
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    };
+  }, []);
+
   const onVideoReady = useCallback(() => {
     setIsReady(true);
     if (!canvasRef.current || !videoRef.current) return;
@@ -86,7 +146,7 @@ export function useCamera() {
     postProcessorRef.current.startPreview(videoRef.current);
   }, [enhanceEnabled]);
 
-  const capture = useCallback(async () => {
+  const doCapture = useCallback(async () => {
     if (!videoRef.current) return;
     const { blob, width, height } = await cameraService.capture(
       videoRef.current,
@@ -104,6 +164,31 @@ export function useCamera() {
       mirrored: isMirrored,
     });
   }, [isMirrored, selectedResolution]);
+
+  const capture = useCallback(async () => {
+    if (timerMode === 0) {
+      await doCapture();
+      return;
+    }
+
+    // Start countdown
+    setCountdown(timerMode);
+    let remaining = timerMode;
+
+    countdownIntervalRef.current = setInterval(async () => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        if (countdownIntervalRef.current) {
+          clearInterval(countdownIntervalRef.current);
+          countdownIntervalRef.current = null;
+        }
+        setCountdown(null);
+        await doCapture();
+      } else {
+        setCountdown(remaining);
+      }
+    }, 1000);
+  }, [timerMode, doCapture]);
 
   const savePhoto = useCallback(
     async (name: string) => {
@@ -166,6 +251,68 @@ export function useCamera() {
     setCaptured(null);
   }, [captured]);
 
+  // Feature 1: Grid toggle
+  const toggleGrid = useCallback(() => setShowGrid((prev) => !prev), []);
+
+  // Feature 2: Torch toggle
+  const toggleTorch = useCallback(async () => {
+    const stream = cameraService.getStream();
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    if (!track) return;
+    const next = !torchEnabled;
+    try {
+      await track.applyConstraints({
+        advanced: [{ torch: next } as MediaTrackConstraintSet],
+      });
+      setTorchEnabled(next);
+    } catch {
+      // torch not supported or failed silently
+    }
+  }, [torchEnabled]);
+
+  // Feature 3: Timer cycle
+  const cycleTimer = useCallback(() => {
+    setTimerMode((prev) => {
+      if (prev === 0) return 3;
+      if (prev === 3) return 10;
+      return 0;
+    });
+  }, []);
+
+  // Feature 4: Zoom
+  const applyZoom = useCallback(
+    async (newZoom: number) => {
+      if (!zoomCapabilities) return;
+      const clamped = Math.min(
+        zoomCapabilities.max,
+        Math.max(zoomCapabilities.min, newZoom),
+      );
+      const stream = cameraService.getStream();
+      if (!stream) return;
+      const track = stream.getVideoTracks()[0];
+      if (!track) return;
+      try {
+        await track.applyConstraints({
+          advanced: [{ zoom: clamped } as MediaTrackConstraintSet],
+        });
+        setZoomLevel(clamped);
+
+        // Show zoom indicator briefly
+        setShowZoomIndicator(true);
+        if (zoomIndicatorTimerRef.current) {
+          clearTimeout(zoomIndicatorTimerRef.current);
+        }
+        zoomIndicatorTimerRef.current = setTimeout(() => {
+          setShowZoomIndicator(false);
+        }, 1500);
+      } catch {
+        // zoom not supported
+      }
+    },
+    [zoomCapabilities],
+  );
+
   return {
     videoRef,
     canvasRef,
@@ -187,5 +334,21 @@ export function useCamera() {
     toggleMirror,
     toggleEnhance,
     switchCamera,
+    // Feature 1
+    showGrid,
+    toggleGrid,
+    // Feature 2
+    torchEnabled,
+    torchSupported,
+    toggleTorch,
+    // Feature 3
+    timerMode,
+    countdown,
+    cycleTimer,
+    // Feature 4
+    zoomLevel,
+    zoomCapabilities,
+    showZoomIndicator,
+    applyZoom,
   };
 }
