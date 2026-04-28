@@ -14,16 +14,14 @@ import {
   Share2,
   Download,
   ImagePlus,
+  HardDrive,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useGallery } from "@/presentation/hooks/useGallery";
-import { shareFile, downloadBlob, canShare } from "@/data/services/WebShareService";
-import { IndexedDBFileStorage } from "@/data/storage/IndexedDBFileStorage";
+import { downloadBlob, canShare } from "@/data/services/WebShareService";
 import { GalleryCard } from "./GalleryCard";
-import { PhotoDetailView } from "./PhotoDetailView";
 import { Dialog } from "@/presentation/components/ui/Dialog";
 import { Photo } from "@/domain/entities/Photo";
-
-const fileStorage = new IndexedDBFileStorage();
 
 type SortKey = "newest" | "oldest" | "name-az" | "name-za";
 
@@ -46,27 +44,27 @@ export function GalleryView() {
     importPhotos,
   } = useGallery();
 
-  // ── Photo detail view ──────────────────────────────────────────
-  const [detailIndex, setDetailIndex] = useState<number | null>(null);
-
-  // ── Multi-select ───────────────────────────────────────────────
+  // Multi-select
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmBatchDelete, setConfirmBatchDelete] = useState(false);
 
-  // ── Search / sort ──────────────────────────────────────────────
+  // Search / sort
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
 
-  // ── Import ─────────────────────────────────────────────────────
+  // Import
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importProgress, setImportProgress] = useState<{
     done: number;
     total: number;
   } | null>(null);
 
-  // ── Derived: filtered + sorted photos ─────────────────────────
+  // Storage collapsible
+  const [storageExpanded, setStorageExpanded] = useState(false);
+
+  // Filtered + sorted
   const displayedPhotos = useMemo<Photo[]>(() => {
     let result = photos;
     if (query.trim()) {
@@ -88,49 +86,14 @@ export function GalleryView() {
     return result;
   }, [photos, query, sortKey]);
 
-  // ── Detail navigation uses displayedPhotos ─────────────────────
-  const openDetail = useCallback((index: number) => {
-    setDetailIndex(index);
-  }, []);
-
-  const closeDetail = useCallback(() => setDetailIndex(null), []);
-
-  // ── Handlers ───────────────────────────────────────────────────
-  const handleEdit = useCallback(
-    async (id: string) => {
-      const blob = await getFullBlob(id);
-      if (blob) {
-        await fileStorage.save(`edit-${id}`, blob);
-        router.push(`/editor?photoId=edit-${id}`);
-      }
+  const openPhoto = useCallback(
+    (id: string) => {
+      router.push(`/gallery/${id}`);
     },
-    [getFullBlob, router],
+    [router],
   );
 
-  const handleShare = useCallback(
-    async (id: string, name: string) => {
-      const blob = await getFullBlob(id);
-      if (blob) await shareFile(blob, name);
-    },
-    [getFullBlob],
-  );
-
-  const handleDownload = useCallback(
-    async (id: string, name: string) => {
-      const blob = await getFullBlob(id);
-      if (blob) downloadBlob(blob, name);
-    },
-    [getFullBlob],
-  );
-
-  const handleDelete = useCallback(
-    async (id: string) => {
-      await deletePhoto(id);
-    },
-    [deletePhoto],
-  );
-
-  // ── Select mode helpers ────────────────────────────────────────
+  // Select mode
   const toggleSelectMode = () => {
     setSelectMode((v) => !v);
     setSelectedIds(new Set());
@@ -175,11 +138,7 @@ export function GalleryView() {
         files.push(new File([blob], `${photo.name}.jpg`, { type: blob.type }));
       }
     }
-    if (
-      files.length > 0 &&
-      canShare() &&
-      navigator.canShare({ files })
-    ) {
+    if (files.length > 0 && canShare() && navigator.canShare({ files })) {
       try {
         await navigator.share({ files });
         return;
@@ -187,7 +146,6 @@ export function GalleryView() {
         // fall through to individual downloads
       }
     }
-    // Fallback: download each
     for (const photo of selectedPhotos) {
       const blob = await getFullBlob(photo.id);
       if (blob) downloadBlob(blob, photo.name);
@@ -202,7 +160,7 @@ export function GalleryView() {
     }
   };
 
-  // ── Import ─────────────────────────────────────────────────────
+  // Import
   const handleImportClick = () => fileInputRef.current?.click();
 
   const handleImportChange = async (
@@ -215,11 +173,10 @@ export function GalleryView() {
       setImportProgress({ done, total }),
     );
     setImportProgress(null);
-    // Reset input so the same files can be re-imported
     e.target.value = "";
   };
 
-  // ── Loading state ──────────────────────────────────────────────
+  // Loading
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center bg-black">
@@ -228,62 +185,80 @@ export function GalleryView() {
     );
   }
 
+  const showStorageWarning =
+    storageEstimate && storageEstimate.usedFraction > 0.5;
+
   return (
     <div className="flex h-dvh flex-col bg-black">
       {/* ── Header ── */}
-      <div className="px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-3 space-y-3">
+      <div className="border-b border-white/5 bg-black/80 backdrop-blur-md px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-3 space-y-3">
         <div className="flex items-center justify-between">
-          {selectMode ? (
-            <>
-              <button
-                onClick={toggleSelectAll}
-                className="flex items-center gap-1.5 text-sm font-medium text-blue-400 active:text-blue-300"
+          <AnimatePresence mode="wait" initial={false}>
+            {selectMode ? (
+              <motion.div
+                key="select-header"
+                className="flex w-full items-center justify-between"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
               >
-                {isAllSelected ? (
-                  <CheckSquare className="h-4 w-4" />
-                ) : (
-                  <Square className="h-4 w-4" />
-                )}
-                {isAllSelected ? "Désélectionner tout" : "Tout sélectionner"}
-              </button>
-              <button
-                onClick={toggleSelectMode}
-                className="text-sm font-medium text-zinc-400 active:text-white"
-              >
-                Annuler
-              </button>
-            </>
-          ) : (
-            <>
-              <h1 className="text-xl font-bold text-white">Galerie</h1>
-              <div className="flex items-center gap-2">
-                {/* Import */}
                 <button
-                  onClick={handleImportClick}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-white transition-colors active:bg-zinc-700"
-                  title="Importer des photos"
+                  onClick={toggleSelectAll}
+                  className="flex items-center gap-1.5 text-sm font-medium text-blue-400 active:text-blue-300 transition-colors"
                 >
-                  <ImagePlus className="h-4.5 w-4.5" />
+                  {isAllSelected ? (
+                    <CheckSquare className="h-4 w-4" />
+                  ) : (
+                    <Square className="h-4 w-4" />
+                  )}
+                  {isAllSelected ? "Désélectionner" : "Tout sélectionner"}
                 </button>
-                {/* Select */}
-                {photos.length > 0 && (
+                <button
+                  onClick={toggleSelectMode}
+                  className="text-sm font-medium text-zinc-400 active:text-white transition-colors"
+                >
+                  Annuler
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="normal-header"
+                className="flex w-full items-center justify-between"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <h1 className="text-xl font-bold text-white tracking-tight">
+                  Galerie
+                </h1>
+                <div className="flex items-center gap-1.5">
                   <button
-                    onClick={toggleSelectMode}
-                    className="flex h-9 items-center gap-1 rounded-full bg-zinc-800 px-3 text-sm font-medium text-white transition-colors active:bg-zinc-700"
+                    onClick={handleImportClick}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-800 active:bg-zinc-700 active:text-white"
+                    title="Importer des photos"
                   >
-                    Sélectionner
+                    <ImagePlus className="h-4.5 w-4.5" />
                   </button>
-                )}
-                {/* Camera */}
-                <button
-                  onClick={() => router.push("/camera")}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-colors active:bg-zinc-300"
-                >
-                  <Camera className="h-4.5 w-4.5" />
-                </button>
-              </div>
-            </>
-          )}
+                  {photos.length > 0 && (
+                    <button
+                      onClick={toggleSelectMode}
+                      className="flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-800 active:bg-zinc-700 active:text-white"
+                    >
+                      Sélectionner
+                    </button>
+                  )}
+                  <button
+                    onClick={() => router.push("/camera")}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-colors active:bg-zinc-300"
+                  >
+                    <Camera className="h-4.5 w-4.5" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Search + Sort row */}
@@ -296,12 +271,12 @@ export function GalleryView() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Rechercher…"
-                className="w-full rounded-xl bg-zinc-800 py-2 pl-9 pr-4 text-sm text-white placeholder-zinc-500 outline-none focus:ring-1 focus:ring-zinc-600"
+                className="w-full rounded-xl bg-zinc-800/80 py-2.5 pl-9 pr-4 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:bg-zinc-800 focus:ring-1 focus:ring-zinc-600"
               />
               {query && (
                 <button
                   onClick={() => setQuery("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 active:text-white"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 active:text-white transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -310,63 +285,89 @@ export function GalleryView() {
             <div className="relative">
               <button
                 onClick={() => setShowSortMenu((v) => !v)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-800 text-zinc-300 transition-colors active:bg-zinc-700"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-800/80 text-zinc-400 transition-colors active:bg-zinc-700 active:text-white"
                 title="Trier"
               >
                 <ArrowUpDown className="h-4 w-4" />
               </button>
-              {showSortMenu && (
-                <div className="absolute right-0 top-full mt-1 z-20 min-w-max rounded-xl bg-zinc-800 shadow-xl overflow-hidden">
-                  {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        setSortKey(key);
-                        setShowSortMenu(false);
-                      }}
-                      className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                        sortKey === key
-                          ? "text-white font-semibold bg-zinc-700"
-                          : "text-zinc-300 hover:bg-zinc-700"
-                      }`}
-                    >
-                      {SORT_LABELS[key]}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <AnimatePresence>
+                {showSortMenu && (
+                  <motion.div
+                    className="absolute right-0 top-full mt-1.5 z-20 min-w-max rounded-xl bg-zinc-800 shadow-2xl overflow-hidden border border-zinc-700/50"
+                    initial={{ opacity: 0, y: -6, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                    transition={{ duration: 0.12 }}
+                  >
+                    {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          setSortKey(key);
+                          setShowSortMenu(false);
+                        }}
+                        className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                          sortKey === key
+                            ? "text-white font-semibold bg-zinc-700/60"
+                            : "text-zinc-300 active:bg-zinc-700/40"
+                        }`}
+                      >
+                        {SORT_LABELS[key]}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         )}
       </div>
 
       {/* ── Import progress ── */}
-      {importProgress && (
-        <div className="mx-4 mb-2 rounded-xl bg-zinc-800 px-4 py-3">
-          <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-sm text-zinc-300">
-              Import… {importProgress.done}/{importProgress.total}
-            </span>
-            <span className="text-xs text-zinc-500">
-              {Math.round((importProgress.done / importProgress.total) * 100)}%
-            </span>
-          </div>
-          <div className="h-1.5 w-full rounded-full bg-zinc-700">
-            <div
-              className="h-full rounded-full bg-white transition-all duration-300"
-              style={{
-                width: `${(importProgress.done / importProgress.total) * 100}%`,
-              }}
-            />
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {importProgress && (
+          <motion.div
+            className="mx-4 mt-3 rounded-xl bg-zinc-800/80 px-4 py-3"
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: "auto", marginTop: 12 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-sm text-zinc-300">
+                Import… {importProgress.done}/{importProgress.total}
+              </span>
+              <span className="text-xs text-zinc-500">
+                {Math.round(
+                  (importProgress.done / importProgress.total) * 100,
+                )}
+                %
+              </span>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-zinc-700">
+              <div
+                className="h-full rounded-full bg-white transition-all duration-300"
+                style={{
+                  width: `${(importProgress.done / importProgress.total) * 100}%`,
+                }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* ── Empty state ── */}
+      {/* ── Content ── */}
       {photos.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-          <ImageOff className="h-16 w-16 text-zinc-600" />
-          <p className="text-lg text-zinc-400">Aucune photo</p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-900">
+            <ImageOff className="h-10 w-10 text-zinc-600" />
+          </div>
+          <div>
+            <p className="text-lg font-medium text-zinc-300">Aucune photo</p>
+            <p className="mt-1 text-sm text-zinc-500">
+              Prenez une photo ou importez depuis votre appareil
+            </p>
+          </div>
           <div className="flex gap-3">
             <button
               onClick={handleImportClick}
@@ -385,126 +386,152 @@ export function GalleryView() {
       ) : displayedPhotos.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
           <Search className="h-12 w-12 text-zinc-600" />
-          <p className="text-zinc-400">Aucun résultat pour « {query} »</p>
+          <p className="text-zinc-400">
+            Aucun résultat pour &laquo; {query} &raquo;
+          </p>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          {/* Sort label */}
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs text-zinc-500">
+        <div className="flex-1 overflow-y-auto px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {/* Photo count + sort indicator */}
+          <div className="mb-2.5 flex items-center justify-between px-0.5">
+            <span className="text-xs font-medium text-zinc-500">
               {displayedPhotos.length} photo
               {displayedPhotos.length > 1 ? "s" : ""}
             </span>
-            <span className="text-xs text-zinc-600">{SORT_LABELS[sortKey]}</span>
+            <span className="text-xs text-zinc-600">
+              {SORT_LABELS[sortKey]}
+            </span>
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {displayedPhotos.map((photo, index) => (
+            {displayedPhotos.map((photo) => (
               <GalleryCard
                 key={photo.id}
                 photo={photo}
                 thumbnailUrl={thumbnailUrls.get(photo.id)}
-                onEdit={() => handleEdit(photo.id)}
-                onShare={() => handleShare(photo.id, photo.name)}
-                onDownload={() => handleDownload(photo.id, photo.name)}
-                onDelete={() => handleDelete(photo.id)}
                 selectMode={selectMode}
                 selected={selectedIds.has(photo.id)}
                 onSelect={() => toggleSelect(photo.id)}
-                onOpen={() => openDetail(index)}
+                onOpen={() => openPhoto(photo.id)}
               />
             ))}
           </div>
 
-          {/* Storage indicator */}
-          {storageEstimate && (
-            <div className="mt-4 rounded-xl bg-zinc-900 px-4 py-3">
-              <div className="mb-1.5 flex items-center justify-between text-xs text-zinc-400">
-                <span>
-                  {storageEstimate.usedMB < 1
-                    ? `${(storageEstimate.usedMB * 1024).toFixed(0)} Ko`
-                    : `${storageEstimate.usedMB.toFixed(1)} Mo`}{" "}
-                  utilisés
-                </span>
-                <span>
-                  {storageEstimate.quotaMB >= 1024
-                    ? `${(storageEstimate.quotaMB / 1024).toFixed(1)} Go`
-                    : `${storageEstimate.quotaMB.toFixed(0)} Mo`}{" "}
-                  disponibles
-                </span>
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-zinc-700">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    storageEstimate.usedFraction > 0.8
-                      ? "bg-red-500"
-                      : storageEstimate.usedFraction > 0.5
-                        ? "bg-yellow-500"
-                        : "bg-green-500"
-                  }`}
-                  style={{
-                    width: `${Math.min(storageEstimate.usedFraction * 100, 100)}%`,
-                  }}
-                />
-              </div>
-            </div>
-          )}
+        </div>
+      )}
+
+      {/* ── Storage indicator (fixed footer) ── */}
+      {storageEstimate && photos.length > 0 && (
+        <div className="border-t border-white/5 bg-black/80 backdrop-blur-md">
+          <button
+            onClick={() => setStorageExpanded((v) => !v)}
+            className="flex w-full items-center gap-2 px-4 py-2 text-xs text-zinc-500 transition-colors active:bg-zinc-900"
+          >
+            <HardDrive className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              {storageEstimate.usedMB < 1
+                ? `${(storageEstimate.usedMB * 1024).toFixed(0)} Ko`
+                : `${storageEstimate.usedMB.toFixed(1)} Mo`}{" "}
+              utilisés
+            </span>
+            {showStorageWarning && (
+              <span
+                className={`ml-auto text-[10px] font-medium ${
+                  storageEstimate.usedFraction > 0.8
+                    ? "text-red-400"
+                    : "text-yellow-500"
+                }`}
+              >
+                {Math.round(storageEstimate.usedFraction * 100)}%
+              </span>
+            )}
+          </button>
+
+          <AnimatePresence>
+            {(storageExpanded || showStorageWarning) && (
+              <motion.div
+                className="overflow-hidden"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="px-4 pb-2">
+                  <div className="mb-1 flex items-center justify-between text-[11px] text-zinc-500">
+                    <span>
+                      {storageEstimate.usedMB < 1
+                        ? `${(storageEstimate.usedMB * 1024).toFixed(0)} Ko`
+                        : `${storageEstimate.usedMB.toFixed(1)} Mo`}
+                    </span>
+                    <span>
+                      {storageEstimate.quotaMB >= 1024
+                        ? `${(storageEstimate.quotaMB / 1024).toFixed(1)} Go`
+                        : `${storageEstimate.quotaMB.toFixed(0)} Mo`}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-zinc-800">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        storageEstimate.usedFraction > 0.8
+                          ? "bg-red-500"
+                          : storageEstimate.usedFraction > 0.5
+                            ? "bg-yellow-500"
+                            : "bg-emerald-500"
+                      }`}
+                      style={{
+                        width: `${Math.min(storageEstimate.usedFraction * 100, 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
       {/* ── Batch action bar ── */}
-      {selectMode && selectedIds.size > 0 && (
-        <div className="border-t border-zinc-800 bg-zinc-950 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-medium text-zinc-300">
-              {selectedIds.size} sélectionné{selectedIds.size > 1 ? "s" : ""}
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleBatchShare}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-white active:bg-zinc-700"
-                title="Partager"
-              >
-                <Share2 className="h-4 w-4" />
-              </button>
-              <button
-                onClick={handleBatchDownload}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-white active:bg-zinc-700"
-                title="Télécharger"
-              >
-                <Download className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setConfirmBatchDelete(true)}
-                className="flex h-9 items-center gap-1.5 rounded-full bg-red-600 px-4 text-sm font-medium text-white active:bg-red-700"
-              >
-                <Trash2 className="h-4 w-4" />
-                Supprimer
-              </button>
+      <AnimatePresence>
+        {selectMode && selectedIds.size > 0 && (
+          <motion.div
+            className="border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-md px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 350 }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium text-zinc-300">
+                {selectedIds.size} sélectionné
+                {selectedIds.size > 1 ? "s" : ""}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={handleBatchShare}
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-zinc-300 transition-colors active:bg-zinc-800 active:text-white"
+                  title="Partager"
+                >
+                  <Share2 className="h-4.5 w-4.5" />
+                </button>
+                <button
+                  onClick={handleBatchDownload}
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-zinc-300 transition-colors active:bg-zinc-800 active:text-white"
+                  title="Télécharger"
+                >
+                  <Download className="h-4.5 w-4.5" />
+                </button>
+                <button
+                  onClick={() => setConfirmBatchDelete(true)}
+                  className="flex h-10 items-center gap-1.5 rounded-full bg-red-600 px-4 text-sm font-medium text-white transition-colors active:bg-red-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Supprimer
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Photo detail view ── */}
-      {detailIndex !== null && (
-        <PhotoDetailView
-          photos={displayedPhotos}
-          initialIndex={detailIndex}
-          thumbnailUrls={thumbnailUrls}
-          getFullBlob={getFullBlob}
-          onClose={closeDetail}
-          onEdit={(id) => {
-            closeDetail();
-            handleEdit(id);
-          }}
-          onShare={(id, name) => handleShare(id, name)}
-          onDownload={(id, name) => handleDownload(id, name)}
-          onDelete={async (id) => {
-            await handleDelete(id);
-          }}
-        />
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Batch delete confirm ── */}
       <Dialog
