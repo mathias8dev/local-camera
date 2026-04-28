@@ -171,6 +171,7 @@ export function useCamera() {
     canvasRef,
     isReady,
     previewUrl: captured?.previewUrl ?? null,
+    capturedBlob: captured?.blob ?? null,
     capturedMirrored: captured?.mirrored ?? false,
     error,
     isMirrored,

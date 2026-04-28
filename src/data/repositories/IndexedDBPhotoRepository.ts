@@ -2,8 +2,10 @@ import { Photo } from "@/domain/entities/Photo";
 import { PhotoRepository } from "@/domain/repositories/PhotoRepository";
 import { FileStorage } from "@/domain/storage/FileStorage";
 import { withTransaction } from "@/data/storage/IndexedDBProvider";
+import { generateThumbnail } from "@/data/services/ThumbnailService";
 
 const STORE = "photos";
+const THUMB_STORE = "thumbnails";
 
 function toRecord(photo: Photo) {
   return { ...photo, createdAt: photo.createdAt.toISOString() };
@@ -18,6 +20,10 @@ export class IndexedDBPhotoRepository implements PhotoRepository {
 
   async save(photo: Photo, imageData: Blob): Promise<void> {
     await this.fileStorage.save(photo.id, imageData);
+    const thumb = await generateThumbnail(imageData);
+    await withTransaction(THUMB_STORE, "readwrite", (store) =>
+      store.put(thumb, photo.id),
+    );
     return withTransaction(STORE, "readwrite", (store) =>
       store.put(toRecord(photo)),
     );
@@ -47,8 +53,17 @@ export class IndexedDBPhotoRepository implements PhotoRepository {
     return this.fileStorage.get(id);
   }
 
+  async getThumbnail(id: string): Promise<Blob | null> {
+    return withTransaction<Blob | null>(THUMB_STORE, "readonly", (store) =>
+      store.get(id),
+    );
+  }
+
   async delete(id: string): Promise<void> {
     await this.fileStorage.delete(id);
+    await withTransaction(THUMB_STORE, "readwrite", (store) =>
+      store.delete(id),
+    );
     return withTransaction(STORE, "readwrite", (store) => store.delete(id));
   }
 }

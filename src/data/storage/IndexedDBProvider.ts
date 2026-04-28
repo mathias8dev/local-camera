@@ -1,9 +1,10 @@
 const DB_NAME = "local-camera";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const STORES = [
   { name: "files" },
   { name: "photos", options: { keyPath: "id" } as IDBObjectStoreParameters },
+  { name: "thumbnails" },
 ];
 
 let dbPromise: Promise<IDBDatabase> | null = null;

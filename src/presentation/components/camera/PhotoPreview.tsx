@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RotateCcw, Pencil, Download } from "lucide-react";
+import { RotateCcw, Pencil, Share2, Download } from "lucide-react";
 import { Dialog } from "@/presentation/components/ui/Dialog";
 import { Input } from "@/presentation/components/ui/Input";
 
@@ -10,10 +10,11 @@ interface PhotoPreviewProps {
   isMirrored: boolean;
   onSave: (name: string) => void;
   onEdit: () => void;
+  onShare: () => void;
   onRetake: () => void;
 }
 
-export function PhotoPreview({ previewUrl, isMirrored, onSave, onEdit, onRetake }: PhotoPreviewProps) {
+export function PhotoPreview({ previewUrl, isMirrored, onSave, onEdit, onShare, onRetake }: PhotoPreviewProps) {
   const [showNameDialog, setShowNameDialog] = useState(false);
   const [name, setName] = useState("");
 
@@ -41,6 +42,13 @@ export function PhotoPreview({ previewUrl, isMirrored, onSave, onEdit, onRetake 
         >
           <Pencil className="h-4 w-4" />
           <span className="hidden sm:inline">Editer</span>
+        </button>
+        <button
+          onClick={onShare}
+          className="flex items-center gap-2 rounded-full border-2 border-white bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition-colors active:bg-white/20 sm:px-6 sm:py-3 sm:text-base"
+        >
+          <Share2 className="h-4 w-4" />
+          <span className="hidden sm:inline">Partager</span>
         </button>
         <button
           onClick={() => setShowNameDialog(true)}

@@ -30,7 +30,7 @@ export function EditorView() {
     setSaving(true);
     await save(name.trim());
     setSaving(false);
-    router.push("/camera");
+    router.push("/gallery");
   };
 
   if (loading) {
@@ -46,7 +46,7 @@ export function EditorView() {
       <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-black text-white">
         <p className="text-lg">{error}</p>
         <button
-          onClick={() => router.push("/camera")}
+          onClick={() => router.push("/gallery")}
           className="rounded-full border-2 border-white px-6 py-3 text-base font-medium transition-colors hover:bg-white/10"
         >
           Retour à la caméra
@@ -62,7 +62,7 @@ export function EditorView() {
         {/* Header */}
         <div className="flex items-center px-3 py-2 lg:px-4 lg:py-3">
           <button
-            onClick={() => router.push("/camera")}
+            onClick={() => router.push("/gallery")}
             className="flex items-center gap-1.5 rounded-full bg-zinc-900/80 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-zinc-800 active:bg-zinc-700"
           >
             <ArrowLeft className="h-4 w-4" />
