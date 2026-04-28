@@ -17,6 +17,9 @@ export function CameraView() {
     error,
     isMirrored,
     enhanceEnabled,
+    resolutions,
+    selectedResolution,
+    setSelectedResolution,
     onVideoReady,
     capture,
     savePhoto,
@@ -75,6 +78,24 @@ export function CameraView() {
 
       {!previewUrl && (
         <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-6 bg-linear-to-t from-black/60 to-transparent px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-20">
+          {resolutions.length > 1 && (
+            <div className="flex gap-2">
+              {resolutions.map((res) => (
+                <button
+                  key={res.label}
+                  onClick={() => setSelectedResolution(res)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur-sm transition-colors ${
+                    selectedResolution?.label === res.label
+                      ? "bg-white text-black"
+                      : "bg-white/20 text-white"
+                  }`}
+                >
+                  {res.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="flex w-full max-w-xs items-center justify-between">
             <div className="flex gap-2">
               <button

@@ -6,6 +6,7 @@ import { WebGLPostProcessor } from "@/data/services/webgl/WebGLPostProcessor";
 import { IndexedDBPhotoRepository } from "@/data/repositories/IndexedDBPhotoRepository";
 import { IndexedDBFileStorage } from "@/data/storage/IndexedDBFileStorage";
 import { Photo } from "@/domain/entities/Photo";
+import type { Resolution } from "@/domain/entities/Resolution";
 
 const cameraService = new CameraService();
 const fileStorage = new IndexedDBFileStorage();
@@ -28,6 +29,8 @@ export function useCamera() {
   const [captured, setCaptured] = useState<CapturedData | null>(null);
   const [isMirrored, setIsMirrored] = useState(false);
   const [enhanceEnabled, setEnhanceEnabled] = useState(true);
+  const [resolutions, setResolutions] = useState<Resolution[]>([]);
+  const [selectedResolution, setSelectedResolution] = useState<Resolution | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,6 +42,9 @@ export function useCamera() {
         const stream = await cameraService.start(facingMode);
         if (!cancelled && videoRef.current) {
           videoRef.current.srcObject = stream;
+          const res = cameraService.getResolutions();
+          setResolutions(res);
+          if (res.length > 0) setSelectedResolution(res[0]);
         }
       } catch {
         if (!cancelled) {
@@ -82,7 +88,10 @@ export function useCamera() {
 
   const capture = useCallback(async () => {
     if (!videoRef.current) return;
-    const { blob, width, height } = await cameraService.capture(videoRef.current);
+    const { blob, width, height } = await cameraService.capture(
+      videoRef.current,
+      selectedResolution ?? undefined,
+    );
     let enhanced = blob;
     if (postProcessorRef.current) {
       enhanced = await postProcessorRef.current.processBlob(blob, width, height);
@@ -94,7 +103,7 @@ export function useCamera() {
       height,
       mirrored: isMirrored,
     });
-  }, [isMirrored]);
+  }, [isMirrored, selectedResolution]);
 
   const savePhoto = useCallback(
     async (name: string) => {
@@ -166,6 +175,9 @@ export function useCamera() {
     error,
     isMirrored,
     enhanceEnabled,
+    resolutions,
+    selectedResolution,
+    setSelectedResolution,
     onVideoReady,
     capture,
     savePhoto,
