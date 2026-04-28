@@ -46,7 +46,6 @@ export function useImageColors(src: string | null | undefined) {
     }
 
     const img = new Image();
-    img.crossOrigin = "anonymous";
     img.onload = () => {
       const [c1, c2] = extractColors(img);
       const g = `linear-gradient(135deg, ${c1}, ${c2})`;

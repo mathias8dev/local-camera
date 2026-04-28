@@ -222,15 +222,15 @@ export function EditorView() {
   }
 
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-black lg:flex-row">
+    <div className="relative flex h-dvh flex-col overflow-hidden bg-black lg:flex-row">
+      {/* Dynamic background gradient from photo colors */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0 opacity-20 transition-[background-image] duration-700"
+        style={{ backgroundImage: bgGradient ?? undefined }}
+      />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-black/50" />
       {/* Canvas area */}
-      <div className="relative flex min-h-0 flex-1 flex-col lg:flex-1">
-        {/* Dynamic background gradient from photo colors */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-20 transition-[background-image] duration-700"
-          style={{ backgroundImage: bgGradient ?? undefined }}
-        />
-        <div className="pointer-events-none absolute inset-0 bg-black/50" />
+      <div className="relative z-[1] flex min-h-0 flex-1 flex-col lg:flex-1">
         {/* Header */}
         <div className="relative z-10 flex items-center gap-2 px-[max(0.75rem,env(safe-area-inset-left))] pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 lg:px-4 lg:pb-3">
           <button
@@ -322,7 +322,7 @@ export function EditorView() {
       </div>
 
       {/* Controls panel */}
-      <div className="flex max-h-[40dvh] flex-col border-t border-zinc-800 bg-zinc-950 lg:max-h-none lg:w-80 lg:border-l lg:border-t-0">
+      <div className="relative z-[1] flex max-h-[40dvh] flex-col border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm lg:max-h-none lg:w-80 lg:border-l lg:border-t-0">
         <OperationTabs
           tabs={allTabs}
           activeTabId={activeTabId}
