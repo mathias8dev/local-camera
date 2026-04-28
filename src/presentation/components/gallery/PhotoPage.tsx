@@ -80,13 +80,19 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
       setThumbnailUrls(thumbs);
     })();
 
+    const thumbUrls = thumbnailUrlsRef.current;
+    const fullResUrls = fullUrlsRef.current;
     return () => {
-      for (const [, url] of thumbnailUrlsRef.current) URL.revokeObjectURL(url);
-      for (const [, url] of fullUrlsRef.current) URL.revokeObjectURL(url);
+      for (const [, url] of thumbUrls) URL.revokeObjectURL(url);
+      for (const [, url] of fullResUrls) URL.revokeObjectURL(url);
     };
   }, [photoId]);
 
   const currentPhoto = currentIndex >= 0 ? photos[currentIndex] : null;
+  const currentThumbUrl = currentPhoto
+    ? thumbnailUrls.get(currentPhoto.id)
+    : undefined;
+  const bgGradient = useImageColors(currentThumbUrl);
 
   // Load full-res
   const loadFull = useCallback(
@@ -113,17 +119,6 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
     if (currentIndex < photos.length - 1) loadFull(currentIndex + 1);
   }, [currentIndex, photos.length, loadFull]);
 
-  // Keyboard nav
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") router.push("/gallery");
-      if (e.key === "ArrowLeft") goToPrev();
-      if (e.key === "ArrowRight") goToNext();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  });
-
   const goToPrev = () => {
     if (currentIndex > 0) {
       setDirection(-1);
@@ -137,6 +132,17 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
       setCurrentIndex((i) => i + 1);
     }
   };
+
+  // Keyboard nav
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") router.push("/gallery");
+      if (e.key === "ArrowLeft") goToPrev();
+      if (e.key === "ArrowRight") goToNext();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  });
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -223,7 +229,6 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
   const thumbnailUrl = thumbnailUrls.get(currentPhoto.id);
   const fullUrl = fullUrls.get(currentPhoto.id);
   const isFullLoaded = fullLoaded.has(currentPhoto.id);
-  const bgGradient = useImageColors(thumbnailUrl);
 
   const slideVariants = {
     enter: (dir: number) => ({ x: dir > 0 ? 80 : -80, opacity: 0 }),
@@ -245,7 +250,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
       <div className="pointer-events-none absolute inset-0 bg-black/40" />
       {/* Top bar */}
       <motion.div
-        className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-3 z-10"
+        className="flex items-center justify-between px-[max(1rem,env(safe-area-inset-left))] pt-[max(1rem,env(safe-area-inset-top))] pb-3 z-10"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05, duration: 0.2 }}
@@ -327,7 +332,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
 
       {/* Bottom info + actions */}
       <motion.div
-        className="relative z-10 px-4 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+        className="relative z-10 px-[max(1rem,env(safe-area-inset-left))] pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05, duration: 0.2 }}

@@ -191,7 +191,7 @@ export function GalleryView() {
   return (
     <div className="flex h-dvh flex-col bg-black">
       {/* ── Header ── */}
-      <div className="border-b border-white/5 bg-black/80 backdrop-blur-md px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-3 space-y-3">
+      <div className="border-b border-white/5 bg-black/80 backdrop-blur-md px-[max(1rem,env(safe-area-inset-left))] pt-[max(1rem,env(safe-area-inset-top))] pb-3 space-y-3">
         <div className="flex items-center justify-between">
           <AnimatePresence mode="wait" initial={false}>
             {selectMode ? (
@@ -391,7 +391,7 @@ export function GalleryView() {
           </p>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="flex-1 overflow-y-auto px-[max(0.75rem,env(safe-area-inset-left))] pt-3 pb-4">
           {/* Photo count + sort indicator */}
           <div className="mb-2.5 flex items-center justify-between px-0.5">
             <span className="text-xs font-medium text-zinc-500">
@@ -422,7 +422,7 @@ export function GalleryView() {
 
       {/* ── Storage indicator (fixed footer) ── */}
       {storageEstimate && photos.length > 0 && (
-        <div className="border-t border-white/5 bg-black/80 backdrop-blur-md">
+        <div className="border-t border-white/5 bg-black/80 backdrop-blur-md pb-[max(0.25rem,env(safe-area-inset-bottom))]">
           <button
             onClick={() => setStorageExpanded((v) => !v)}
             className="flex w-full items-center gap-2 px-4 py-2 text-xs text-zinc-500 transition-colors active:bg-zinc-900"
@@ -494,7 +494,7 @@ export function GalleryView() {
       <AnimatePresence>
         {selectMode && selectedIds.size > 0 && (
           <motion.div
-            className="border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-md px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+            className="border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-md px-4 py-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}

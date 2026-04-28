@@ -232,7 +232,7 @@ export function EditorView() {
         />
         <div className="pointer-events-none absolute inset-0 bg-black/50" />
         {/* Header */}
-        <div className="relative z-10 flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-3">
+        <div className="relative z-10 flex items-center gap-2 px-[max(0.75rem,env(safe-area-inset-left))] pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 lg:px-4 lg:pb-3">
           <button
             onClick={() => router.push("/gallery")}
             className="flex items-center gap-1.5 rounded-full bg-zinc-900/80 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-zinc-800 active:bg-zinc-700"
@@ -371,7 +371,7 @@ export function EditorView() {
           />
         ) : null}
 
-        <div className="border-t border-zinc-800 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="border-t border-zinc-800 px-4 py-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <button
             onClick={() => setShowSaveDialog(true)}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 active:bg-zinc-300"
