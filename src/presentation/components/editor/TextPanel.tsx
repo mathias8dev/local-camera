@@ -2,6 +2,7 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { TextItem } from "@/domain/entities/Overlay";
+import { Button } from "@/presentation/components/ui/Button";
 import { ColorPicker } from "@/presentation/components/ui/ColorPicker";
 import { SectionLabel } from "@/presentation/components/ui/SectionLabel";
 
@@ -27,13 +28,10 @@ export function TextPanel({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 py-4 lg:px-5">
       {/* Add button */}
-      <button
-        onClick={onAdd}
-        className="flex items-center justify-center gap-2 rounded-xl border border-zinc-700 px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:bg-zinc-800 hover:text-white active:bg-zinc-700"
-      >
+      <Button onClick={onAdd}>
         <Plus className="h-4 w-4" />
         Ajouter un texte
-      </button>
+      </Button>
 
       {selected && (
         <>
@@ -75,29 +73,26 @@ export function TextPanel({
           </div>
 
           {/* Bold toggle */}
-          <button
+          <Button
+            variant="toggle"
+            active={selected.bold}
             onClick={() => onUpdate(selected.id, { bold: !selected.bold })}
-            className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
-              selected.bold
-                ? "bg-white text-black"
-                : "border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:bg-zinc-800 hover:text-white"
-            }`}
           >
             <span className="text-base font-black">B</span>
             Gras
-          </button>
+          </Button>
 
           {/* Delete text */}
-          <button
+          <Button
+            variant="danger"
             onClick={() => {
               onDelete(selected.id);
               onSelect(null);
             }}
-            className="flex items-center justify-center gap-2 rounded-xl border border-red-500/50 px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 active:bg-red-500/20"
           >
             <Trash2 className="h-4 w-4" />
             Supprimer ce texte
-          </button>
+          </Button>
         </>
       )}
 

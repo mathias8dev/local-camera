@@ -1,6 +1,7 @@
 "use client";
 
 import { ParamDef } from "@/domain/entities/EditorOperation";
+import { Button } from "@/presentation/components/ui/Button";
 
 interface ParamControlProps {
   param: ParamDef;
@@ -11,16 +12,14 @@ interface ParamControlProps {
 export function ParamControl({ param, value, onChange }: ParamControlProps) {
   if (param.type === "toggle") {
     return (
-      <button
+      <Button
+        variant="toggle"
+        active={!!value}
         onClick={() => onChange(value ? 0 : 1)}
-        className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-colors active:scale-95 ${
-          value
-            ? "bg-white text-black"
-            : "border border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-white"
-        }`}
+        className="active:scale-95"
       >
         {param.label}
-      </button>
+      </Button>
     );
   }
 

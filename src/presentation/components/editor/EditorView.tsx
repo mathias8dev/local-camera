@@ -30,6 +30,7 @@ import { ExportDialog } from "@/presentation/components/ui/ExportDialog";
 import { Preset } from "@/data/operations/presets";
 import { TextItem } from "@/domain/entities/Overlay";
 import { ExportFormat } from "@/data/services/ImageRenderer";
+import { Button } from "@/presentation/components/ui/Button";
 import { Spinner } from "@/presentation/components/ui/Spinner";
 
 const PRESETS_TAB_ID = "presets";
@@ -382,13 +383,10 @@ export function EditorView() {
         ) : null}
 
         <div className="border-t border-zinc-800 px-4 py-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-          <button
-            onClick={() => setShowSaveDialog(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 active:bg-zinc-300"
-          >
+          <Button variant="primary" onClick={() => setShowSaveDialog(true)} className="w-full">
             <Download className="h-4 w-4" />
             Sauvegarder
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { presets, Preset } from "@/data/operations/presets";
+import { Button } from "@/presentation/components/ui/Button";
 
 interface PresetsPanelProps {
   activePresetId: string | null;
@@ -15,22 +16,17 @@ export function PresetsPanel({ activePresetId, onSelect }: PresetsPanelProps) {
         a custom look.
       </p>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2">
-        {presets.map((preset) => {
-          const active = preset.id === activePresetId;
-          return (
-            <button
-              key={preset.id}
-              onClick={() => onSelect(preset)}
-              className={`flex items-center justify-center rounded-xl px-4 py-3 text-sm font-medium transition-colors active:scale-95 ${
-                active
-                  ? "bg-white text-black"
-                  : "border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:bg-zinc-800 hover:text-white"
-              }`}
-            >
-              {preset.label}
-            </button>
-          );
-        })}
+        {presets.map((preset) => (
+          <Button
+            key={preset.id}
+            variant="toggle"
+            active={preset.id === activePresetId}
+            onClick={() => onSelect(preset)}
+            className="active:scale-95"
+          >
+            {preset.label}
+          </Button>
+        ))}
       </div>
     </div>
   );

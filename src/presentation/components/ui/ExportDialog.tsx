@@ -3,6 +3,7 @@
 import { ExportFormat } from "@/data/services/ImageRenderer";
 import { Dialog } from "./Dialog";
 import { Input } from "./Input";
+import { Button } from "./Button";
 
 const FORMAT_OPTIONS: { format: ExportFormat; label: string }[] = [
   { format: "image/png", label: "PNG" },
@@ -87,19 +88,12 @@ export function ExportDialog({
       )}
 
       <div className="flex justify-end gap-3">
-        <button
-          onClick={onClose}
-          className="rounded-lg px-5 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
-        >
+        <Button variant="ghost" size="sm" onClick={onClose}>
           Annuler
-        </button>
-        <button
-          onClick={onSave}
-          disabled={!canSave}
-          className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition-colors hover:bg-zinc-200 disabled:opacity-40"
-        >
+        </Button>
+        <Button variant="primary" size="sm" onClick={onSave} disabled={!canSave}>
           {saving ? "Enregistrement..." : "Enregistrer"}
-        </button>
+        </Button>
       </div>
     </Dialog>
   );

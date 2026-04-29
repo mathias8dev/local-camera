@@ -2,6 +2,7 @@
 
 import { OperationGroup, OperationValues, isDefault } from "@/domain/entities/EditorOperation";
 import { ParamControl } from "./ParamControl";
+import { Button } from "@/presentation/components/ui/Button";
 import { RotateCcw } from "lucide-react";
 
 interface OperationPanelProps {
@@ -55,13 +56,10 @@ export function OperationPanel({
       })}
 
       {hasChanges && (
-        <button
-          onClick={onResetAll}
-          className="flex shrink-0 items-center justify-center gap-2 rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white active:bg-zinc-700"
-        >
+        <Button onClick={onResetAll} className="shrink-0">
           <RotateCcw className="h-4 w-4" />
           Réinitialiser
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { RotateCcw, RotateCw, Check, X } from "lucide-react";
+import { Button } from "@/presentation/components/ui/Button";
 import { SectionLabel } from "@/presentation/components/ui/SectionLabel";
 
 export interface AspectRatioOption {
@@ -43,21 +44,19 @@ export function CropPanel({
         </SectionLabel>
         <div className="grid grid-cols-3 gap-2">
           {ASPECT_RATIO_OPTIONS.map((opt) => {
-            const active =
+            const isActive =
               opt.value === selectedAspectRatio ||
               (opt.value === null && selectedAspectRatio === null);
             return (
-              <button
+              <Button
                 key={opt.label}
+                variant="toggle"
+                active={isActive}
                 onClick={() => onAspectRatioChange(opt.value)}
-                className={`flex items-center justify-center rounded-xl px-3 py-2.5 text-sm font-medium transition-colors active:scale-95 ${
-                  active
-                    ? "bg-white text-black"
-                    : "border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:bg-zinc-800 hover:text-white"
-                }`}
+                className="active:scale-95"
               >
                 {opt.label}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -69,22 +68,14 @@ export function CropPanel({
           Rotation
         </SectionLabel>
         <div className="flex gap-3">
-          <button
-            onClick={onRotateLeft}
-            aria-label="Pivoter à gauche (90°)"
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-zinc-700 px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:bg-zinc-800 hover:text-white active:bg-zinc-700"
-          >
+          <Button onClick={onRotateLeft} aria-label="Pivoter à gauche (90°)" className="flex-1">
             <RotateCcw className="h-4 w-4" />
             <span className="hidden sm:inline">−90°</span>
-          </button>
-          <button
-            onClick={onRotateRight}
-            aria-label="Pivoter à droite (90°)"
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-zinc-700 px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:bg-zinc-800 hover:text-white active:bg-zinc-700"
-          >
+          </Button>
+          <Button onClick={onRotateRight} aria-label="Pivoter à droite (90°)" className="flex-1">
             <RotateCw className="h-4 w-4" />
             <span className="hidden sm:inline">+90°</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -93,20 +84,14 @@ export function CropPanel({
 
       {/* Apply / Cancel */}
       <div className="flex gap-3">
-        <button
-          onClick={onCancel}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-zinc-700 px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:bg-zinc-800 hover:text-white active:bg-zinc-700"
-        >
+        <Button onClick={onCancel} className="flex-1">
           <X className="h-4 w-4" />
           Annuler
-        </button>
-        <button
-          onClick={onApply}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 active:bg-zinc-300"
-        >
+        </Button>
+        <Button variant="primary" onClick={onApply} className="flex-1">
           <Check className="h-4 w-4" />
           Appliquer
-        </button>
+        </Button>
       </div>
     </div>
   );

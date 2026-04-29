@@ -1,6 +1,7 @@
 "use client";
 
 import { Eraser, Trash2 } from "lucide-react";
+import { Button } from "@/presentation/components/ui/Button";
 import { ColorPicker } from "@/presentation/components/ui/ColorPicker";
 import { SectionLabel } from "@/presentation/components/ui/SectionLabel";
 
@@ -46,28 +47,18 @@ export function DrawPanel({
       </div>
 
       {/* Eraser toggle */}
-      <button
-        onClick={onToggleEraser}
-        className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
-          eraser
-            ? "bg-white text-black"
-            : "border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:bg-zinc-800 hover:text-white"
-        }`}
-      >
+      <Button variant="toggle" active={eraser} onClick={onToggleEraser}>
         <Eraser className="h-4 w-4" />
         Gomme
-      </button>
+      </Button>
 
       <div className="flex-1" />
 
       {/* Clear all */}
-      <button
-        onClick={onClear}
-        className="flex items-center justify-center gap-2 rounded-xl border border-red-500/50 px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 active:bg-red-500/20"
-      >
+      <Button variant="danger" onClick={onClear}>
         <Trash2 className="h-4 w-4" />
         Tout effacer
-      </button>
+      </Button>
     </div>
   );
 }

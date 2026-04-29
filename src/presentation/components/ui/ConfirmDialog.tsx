@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import { Dialog } from "./Dialog";
+import { Button } from "./Button";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -24,18 +25,12 @@ export function ConfirmDialog({
     <Dialog open={open} onClose={onClose} title={title}>
       <p className="text-sm text-zinc-400">{children}</p>
       <div className="flex justify-end gap-3">
-        <button
-          onClick={onClose}
-          className="rounded-lg px-5 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
-        >
+        <Button variant="ghost" size="sm" onClick={onClose}>
           Annuler
-        </button>
-        <button
-          onClick={onConfirm}
-          className="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
-        >
+        </Button>
+        <Button variant="destructive" size="sm" onClick={onConfirm}>
           {confirmLabel}
-        </button>
+        </Button>
       </div>
     </Dialog>
   );
