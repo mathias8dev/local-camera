@@ -197,109 +197,114 @@ export function CameraView() {
 
       {!previewUrl && (
         <>
-          {/* Top-left: torch button */}
-          <div className="absolute top-0 left-0 z-10 p-4 pt-[max(1rem,env(safe-area-inset-top))]">
-            {torchSupported && (
+          {/* Top bar: torch (left) + settings (right) */}
+          <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+            <div>
+              {torchSupported && (
+                <button
+                  onClick={toggleTorch}
+                  aria-label="Activer/désactiver la lampe torche"
+                  className={`flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${
+                    torchEnabled ? "bg-yellow-400 text-black" : "bg-black/40 text-white"
+                  }`}
+                >
+                  <Zap className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex gap-2">
               <button
-                onClick={toggleTorch}
-                aria-label="Activer/désactiver la lampe torche"
-                className={`flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:bg-black/60 ${
-                  torchEnabled ? "bg-yellow-400 text-black" : "bg-black/40 text-white"
+                onClick={toggleMirror}
+                aria-label="Activer/désactiver le miroir"
+                className={`flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${
+                  isMirrored ? "bg-white text-black" : "bg-black/40 text-white"
                 }`}
               >
-                <Zap className="h-5 w-5" />
+                <FlipHorizontal2 className="h-4 w-4" />
               </button>
-            )}
+              <button
+                onClick={toggleEnhance}
+                aria-label="Activer/désactiver les améliorations"
+                className={`flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${
+                  enhanceEnabled ? "bg-white text-black" : "bg-black/40 text-white"
+                }`}
+              >
+                <Sparkles className="h-4 w-4" />
+              </button>
+              <button
+                onClick={toggleGrid}
+                aria-label="Activer/désactiver la grille"
+                className={`flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${
+                  showGrid ? "bg-white text-black" : "bg-black/40 text-white"
+                }`}
+              >
+                <Grid3x3 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={cycleTimer}
+                aria-label="Minuterie de capture"
+                className={`flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${
+                  timerMode !== 0 ? "bg-white text-black" : "bg-black/40 text-white"
+                }`}
+              >
+                <span className="relative flex items-center justify-center">
+                  <Timer className="h-4 w-4" />
+                  {timerMode !== 0 && (
+                    <span className="absolute -top-1 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-yellow-400 text-[8px] font-bold text-black">
+                      {timerMode}
+                    </span>
+                  )}
+                </span>
+              </button>
+            </div>
           </div>
 
-          {/* Top-right: gallery button */}
-          <div className="absolute top-0 right-0 z-10 p-4 pt-[max(1rem,env(safe-area-inset-top))]">
-            <button
-              onClick={() => router.push("/gallery")}
-              aria-label="Galerie"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors active:bg-black/60"
-            >
-              <Images className="h-5 w-5" />
-            </button>
-          </div>
-
-          {/* Bottom controls */}
-          <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-6 bg-linear-to-t from-black/60 to-transparent px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-20">
-            {resolutions.length > 1 && (
-              <div className="flex gap-2">
+          {/* Resolution pills */}
+          {resolutions.length > 1 && (
+            <div className="absolute inset-x-0 top-0 z-10 flex justify-center pt-[calc(max(1rem,env(safe-area-inset-top))+3.25rem)]">
+              <div className="flex gap-1.5">
                 {resolutions.map((res) => (
                   <button
                     key={res.label}
                     onClick={() => setSelectedResolution(res)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur-sm transition-colors ${
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-medium backdrop-blur-sm transition-colors ${
                       selectedResolution?.label === res.label
                         ? "bg-white text-black"
-                        : "bg-white/20 text-white"
+                        : "bg-black/30 text-white/70"
                     }`}
                   >
                     {res.label}
                   </button>
                 ))}
               </div>
-            )}
+            </div>
+          )}
 
-            <div className="flex w-full max-w-xs items-center justify-between">
-              {/* Left group: mirror + enhance + grid + timer */}
-              <div className="flex gap-2">
+          {/* Bottom bar: gallery | capture | switch camera */}
+          <div className="absolute inset-x-0 bottom-0 z-10 bg-linear-to-t from-black/60 to-transparent px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-20">
+            <div className="mx-auto flex max-w-xs items-center">
+              <div className="flex flex-1 justify-start">
                 <button
-                  onClick={toggleMirror}
-                  aria-label="Activer/désactiver le miroir"
-                  className={`flex h-12 w-12 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${
-                    isMirrored ? "bg-white text-black" : "bg-white/20 text-white"
-                  }`}
+                  onClick={() => router.push("/gallery")}
+                  aria-label="Galerie"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors active:scale-90"
                 >
-                  <FlipHorizontal2 className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={toggleEnhance}
-                  aria-label="Activer/désactiver les améliorations"
-                  className={`flex h-12 w-12 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${
-                    enhanceEnabled ? "bg-white text-black" : "bg-white/20 text-white"
-                  }`}
-                >
-                  <Sparkles className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={toggleGrid}
-                  aria-label="Activer/désactiver la grille"
-                  className={`flex h-12 w-12 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${
-                    showGrid ? "bg-white text-black" : "bg-white/20 text-white"
-                  }`}
-                >
-                  <Grid3x3 className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={cycleTimer}
-                  aria-label="Minuterie de capture"
-                  className={`flex h-12 w-12 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${
-                    timerMode !== 0 ? "bg-white text-black" : "bg-white/20 text-white"
-                  }`}
-                >
-                  <span className="relative flex items-center justify-center">
-                    <Timer className="h-5 w-5" />
-                    {timerMode !== 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-[9px] font-bold text-black">
-                        {timerMode}
-                      </span>
-                    )}
-                  </span>
+                  <Images className="h-5 w-5" />
                 </button>
               </div>
 
               <CaptureButton onCapture={capture} disabled={!isReady || countdown !== null} />
 
-              <button
-                onClick={switchCamera}
-                aria-label="Changer de caméra"
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors active:scale-90"
-              >
-                <SwitchCamera className="h-5 w-5" />
-              </button>
+              <div className="flex flex-1 justify-end">
+                <button
+                  onClick={switchCamera}
+                  aria-label="Changer de caméra"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors active:scale-90"
+                >
+                  <SwitchCamera className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
         </>
