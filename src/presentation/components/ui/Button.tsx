@@ -53,7 +53,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`${base} ${sizes[size]} ${variantClass(variant, active)}${className ? ` ${className}` : ""}`}
+      className={`flex ${base} ${sizes[size]} ${variantClass(variant, active)}${className ? ` ${className}` : ""}`}
       {...props}
     >
       {children}
