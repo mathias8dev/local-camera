@@ -18,7 +18,7 @@ interface CapturedData {
   previewUrl: string;
   width: number;
   height: number;
-  mirrored: boolean;
+  photoId: string;
 }
 
 export type TimerMode = 0 | 3 | 10;
@@ -153,16 +153,23 @@ export function useCamera() {
       videoRef.current,
       selectedResolution ?? undefined,
     );
-    let enhanced = blob;
+    let final = blob;
     if (postProcessorRef.current) {
-      enhanced = await postProcessorRef.current.processBlob(blob, width, height);
+      final = await postProcessorRef.current.processBlob(blob, width, height);
     }
+    if (isMirrored) {
+      final = await CameraService.applyMirror(final, width, height);
+    }
+    const photoId = crypto.randomUUID();
+    const name = `Photo ${new Date().toLocaleString("fr-FR")}`;
+    const photo: Photo = { id: photoId, name, width, height, createdAt: new Date() };
+    await photoRepository.save(photo, final);
     setCaptured({
-      blob: enhanced,
-      previewUrl: URL.createObjectURL(enhanced),
+      blob: final,
+      previewUrl: URL.createObjectURL(final),
       width,
       height,
-      mirrored: isMirrored,
+      photoId,
     });
   }, [isMirrored, selectedResolution]);
 
@@ -194,19 +201,16 @@ export function useCamera() {
   const savePhoto = useCallback(
     async (name: string, format: ExportFormat = "image/jpeg", quality?: number) => {
       if (!captured) return;
-      let blob = captured.blob;
-      if (captured.mirrored) {
-        blob = await CameraService.applyMirror(blob, captured.width, captured.height);
-      }
-      const bitmap = await createImageBitmap(blob);
+      const bitmap = await createImageBitmap(captured.blob);
       const canvas = document.createElement("canvas");
       canvas.width = bitmap.width;
       canvas.height = bitmap.height;
       canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
       bitmap.close();
-      blob = await exportCanvas(canvas, format, quality);
+      const blob = await exportCanvas(canvas, format, quality);
+      await photoRepository.delete(captured.photoId);
       const photo: Photo = {
-        id: crypto.randomUUID(),
+        id: captured.photoId,
         name,
         width: captured.width,
         height: captured.height,
@@ -229,18 +233,16 @@ export function useCamera() {
   const sendToEditor = useCallback(async (): Promise<string | null> => {
     if (!captured) return null;
     const id = crypto.randomUUID();
-    let blob = captured.blob;
-    if (captured.mirrored) {
-      blob = await CameraService.applyMirror(blob, captured.width, captured.height);
-    }
-    await fileStorage.save(id, blob);
+    await fileStorage.save(id, captured.blob);
     URL.revokeObjectURL(captured.previewUrl);
     setCaptured(null);
     return id;
   }, [captured]);
 
-  const retake = useCallback(() => {
-    if (captured) URL.revokeObjectURL(captured.previewUrl);
+  const retake = useCallback(async () => {
+    if (!captured) return;
+    URL.revokeObjectURL(captured.previewUrl);
+    await photoRepository.delete(captured.photoId);
     setCaptured(null);
   }, [captured]);
 
@@ -328,7 +330,6 @@ export function useCamera() {
     isReady,
     previewUrl: captured?.previewUrl ?? null,
     capturedBlob: captured?.blob ?? null,
-    capturedMirrored: captured?.mirrored ?? false,
     error,
     isMirrored,
     enhanceEnabled,

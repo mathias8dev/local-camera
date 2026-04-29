@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useCamera } from "@/presentation/hooks/useCamera";
 import { shareFile } from "@/data/services/WebShareService";
-import { CameraService } from "@/data/services/CameraService";
+
 import { CaptureButton } from "./CaptureButton";
 import { PhotoPreview } from "./PhotoPreview";
 import { Spinner } from "@/presentation/components/ui/Spinner";
@@ -25,7 +25,6 @@ export function CameraView() {
     canvasRef,
     isReady,
     previewUrl,
-    capturedMirrored,
     capturedBlob,
     error,
     isMirrored,
@@ -105,13 +104,7 @@ export function CameraView() {
 
   const handleShare = async () => {
     if (!capturedBlob) return;
-    let blob = capturedBlob;
-    if (capturedMirrored) {
-      const bitmap = await createImageBitmap(blob);
-      blob = await CameraService.applyMirror(blob, bitmap.width, bitmap.height);
-      bitmap.close();
-    }
-    await shareFile(blob, "Photo");
+    await shareFile(capturedBlob, "Photo");
   };
 
   if (error) {
@@ -188,7 +181,6 @@ export function CameraView() {
       {previewUrl && (
         <PhotoPreview
           previewUrl={previewUrl}
-          isMirrored={capturedMirrored}
           onSave={savePhoto}
           onEdit={handleEdit}
           onShare={handleShare}

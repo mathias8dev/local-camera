@@ -7,14 +7,13 @@ import { ExportFormat } from "@/data/services/ImageRenderer";
 
 interface PhotoPreviewProps {
   previewUrl: string;
-  isMirrored: boolean;
   onSave: (name: string, format: ExportFormat, quality?: number) => Promise<void>;
   onEdit: () => void;
   onShare: () => void;
   onRetake: () => void;
 }
 
-export function PhotoPreview({ previewUrl, isMirrored, onSave, onEdit, onShare, onRetake }: PhotoPreviewProps) {
+export function PhotoPreview({ previewUrl, onSave, onEdit, onShare, onRetake }: PhotoPreviewProps) {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [name, setName] = useState("");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("image/jpeg");
@@ -35,7 +34,7 @@ export function PhotoPreview({ previewUrl, isMirrored, onSave, onEdit, onShare, 
         <img
           src={previewUrl}
           alt="Photo capturée"
-          className={`max-h-full max-w-full rounded-lg object-contain ${isMirrored ? "scale-x-[-1]" : ""}`}
+          className="max-h-full max-w-full rounded-lg object-contain"
         />
       </div>
 
