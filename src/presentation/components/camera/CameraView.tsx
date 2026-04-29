@@ -16,6 +16,7 @@ import { shareFile } from "@/data/services/WebShareService";
 import { CameraService } from "@/data/services/CameraService";
 import { CaptureButton } from "./CaptureButton";
 import { PhotoPreview } from "./PhotoPreview";
+import { Spinner } from "@/presentation/components/ui/Spinner";
 
 export function CameraView() {
   const router = useRouter();
@@ -156,7 +157,7 @@ export function CameraView() {
 
       {!isReady && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-zinc-600 border-t-white" />
+          <Spinner />
         </div>
       )}
 

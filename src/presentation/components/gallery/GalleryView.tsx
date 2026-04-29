@@ -20,7 +20,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useGallery } from "@/presentation/hooks/useGallery";
 import { downloadBlob, canShare } from "@/data/services/WebShareService";
 import { GalleryCard } from "./GalleryCard";
-import { Dialog } from "@/presentation/components/ui/Dialog";
+import { ConfirmDialog } from "@/presentation/components/ui/ConfirmDialog";
+import { Spinner } from "@/presentation/components/ui/Spinner";
 import { Photo } from "@/domain/entities/Photo";
 
 type SortKey = "newest" | "oldest" | "name-az" | "name-za";
@@ -180,7 +181,7 @@ export function GalleryView() {
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center bg-black">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-zinc-600 border-t-white" />
+        <Spinner />
       </div>
     );
   }
@@ -534,29 +535,15 @@ export function GalleryView() {
       </AnimatePresence>
 
       {/* ── Batch delete confirm ── */}
-      <Dialog
+      <ConfirmDialog
         open={confirmBatchDelete}
         onClose={() => setConfirmBatchDelete(false)}
+        onConfirm={handleBatchDelete}
         title={`Supprimer ${selectedIds.size} photo${selectedIds.size > 1 ? "s" : ""} ?`}
+        confirmLabel="Supprimer tout"
       >
-        <p className="text-sm text-zinc-400">
-          Cette action est irréversible.
-        </p>
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={() => setConfirmBatchDelete(false)}
-            className="rounded-lg px-5 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
-          >
-            Annuler
-          </button>
-          <button
-            onClick={handleBatchDelete}
-            className="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
-          >
-            Supprimer tout
-          </button>
-        </div>
-      </Dialog>
+        Cette action est irréversible.
+      </ConfirmDialog>
 
       {/* ── Hidden file input for import ── */}
       <input

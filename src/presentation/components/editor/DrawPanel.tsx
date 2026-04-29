@@ -1,11 +1,8 @@
 "use client";
 
 import { Eraser, Trash2 } from "lucide-react";
-
-const PRESET_COLORS = [
-  "#ffffff", "#000000", "#ef4444", "#3b82f6",
-  "#22c55e", "#eab308", "#f97316", "#a855f7",
-];
+import { ColorPicker } from "@/presentation/components/ui/ColorPicker";
+import { SectionLabel } from "@/presentation/components/ui/SectionLabel";
 
 interface DrawPanelProps {
   color: string;
@@ -30,47 +27,13 @@ export function DrawPanel({
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 py-4 lg:px-5">
       {/* Color picker */}
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-          Couleur
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {PRESET_COLORS.map((c) => (
-            <button
-              key={c}
-              onClick={() => onColorChange(c)}
-              className={`h-8 w-8 rounded-full border-2 transition-transform active:scale-90 ${
-                color === c && !eraser
-                  ? "border-white scale-110"
-                  : "border-zinc-600"
-              }`}
-              style={{ backgroundColor: c }}
-            />
-          ))}
-          <label
-            className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 text-xs font-bold text-white ${
-              !PRESET_COLORS.includes(color) && !eraser
-                ? "border-white"
-                : "border-zinc-600"
-            }`}
-            style={{
-              background: `conic-gradient(red, yellow, lime, aqua, blue, magenta, red)`,
-            }}
-          >
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => onColorChange(e.target.value)}
-              className="sr-only"
-            />
-          </label>
-        </div>
+        <SectionLabel>Couleur</SectionLabel>
+        <ColorPicker value={color} onChange={onColorChange} inactive={eraser} />
       </div>
 
       {/* Brush size */}
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-          Taille — {size}px
-        </p>
+        <SectionLabel>Taille — {size}px</SectionLabel>
         <input
           type="range"
           min={2}

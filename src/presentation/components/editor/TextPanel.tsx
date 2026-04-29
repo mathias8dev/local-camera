@@ -2,11 +2,8 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { TextItem } from "@/domain/entities/Overlay";
-
-const PRESET_COLORS = [
-  "#ffffff", "#000000", "#ef4444", "#3b82f6",
-  "#22c55e", "#eab308", "#f97316", "#a855f7",
-];
+import { ColorPicker } from "@/presentation/components/ui/ColorPicker";
+import { SectionLabel } from "@/presentation/components/ui/SectionLabel";
 
 interface TextPanelProps {
   items: TextItem[];
@@ -42,9 +39,7 @@ export function TextPanel({
         <>
           {/* Text input */}
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-              Texte
-            </p>
+            <SectionLabel>Texte</SectionLabel>
             <input
               type="text"
               value={selected.text}
@@ -56,9 +51,7 @@ export function TextPanel({
 
           {/* Font size */}
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-              Taille — {selected.fontSize}px
-            </p>
+            <SectionLabel>Taille — {selected.fontSize}px</SectionLabel>
             <input
               type="range"
               min={12}
@@ -74,23 +67,11 @@ export function TextPanel({
 
           {/* Color */}
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-              Couleur
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => onUpdate(selected.id, { color: c })}
-                  className={`h-8 w-8 rounded-full border-2 transition-transform active:scale-90 ${
-                    selected.color === c
-                      ? "border-white scale-110"
-                      : "border-zinc-600"
-                  }`}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
+            <SectionLabel>Couleur</SectionLabel>
+            <ColorPicker
+              value={selected.color}
+              onChange={(c) => onUpdate(selected.id, { color: c })}
+            />
           </div>
 
           {/* Bold toggle */}
@@ -123,9 +104,7 @@ export function TextPanel({
       {/* Item list */}
       {items.length > 0 && (
         <div className="flex flex-col gap-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-            Textes
-          </p>
+          <SectionLabel>Textes</SectionLabel>
           {items.map((item) => (
             <button
               key={item.id}

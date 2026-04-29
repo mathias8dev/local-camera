@@ -1,6 +1,7 @@
 "use client";
 
 import { RotateCcw, RotateCw, Check, X } from "lucide-react";
+import { SectionLabel } from "@/presentation/components/ui/SectionLabel";
 
 export interface AspectRatioOption {
   label: string;
@@ -37,9 +38,9 @@ export function CropPanel({
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 py-4 lg:px-5">
       {/* Aspect ratio presets */}
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide">
+        <SectionLabel>
           Ratio
-        </p>
+        </SectionLabel>
         <div className="grid grid-cols-3 gap-2">
           {ASPECT_RATIO_OPTIONS.map((opt) => {
             const active =
@@ -64,9 +65,9 @@ export function CropPanel({
 
       {/* Rotation */}
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide">
+        <SectionLabel>
           Rotation
-        </p>
+        </SectionLabel>
         <div className="flex gap-3">
           <button
             onClick={onRotateLeft}

@@ -13,7 +13,9 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Photo } from "@/domain/entities/Photo";
-import { Dialog } from "@/presentation/components/ui/Dialog";
+import { ConfirmDialog } from "@/presentation/components/ui/ConfirmDialog";
+import { ActionButton } from "@/presentation/components/ui/ActionButton";
+import { Spinner } from "@/presentation/components/ui/Spinner";
 
 const dateFormat = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -220,9 +222,7 @@ export function PhotoDetailView({
               />
             )}
             {/* Loading spinner when no image at all */}
-            {!thumbnailUrl && !fullUrl && (
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-zinc-600 border-t-white" />
-            )}
+            {!thumbnailUrl && !fullUrl && <Spinner />}
           </motion.div>
         </AnimatePresence>
 
@@ -289,56 +289,15 @@ export function PhotoDetailView({
         </div>
       </motion.div>
 
-      <Dialog
+      <ConfirmDialog
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
         title="Supprimer cette photo ?"
       >
-        <p className="text-sm text-zinc-400">
-          &quot;{currentPhoto.name}&quot; sera définitivement supprimée.
-        </p>
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={() => setConfirmDelete(false)}
-            className="rounded-lg px-5 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
-          >
-            Annuler
-          </button>
-          <button
-            onClick={handleDelete}
-            className="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
-          >
-            Supprimer
-          </button>
-        </div>
-      </Dialog>
+        &quot;{currentPhoto.name}&quot; sera définitivement supprimée.
+      </ConfirmDialog>
     </motion.div>,
     document.body,
-  );
-}
-
-function ActionButton({
-  label,
-  onClick,
-  danger,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  danger?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex flex-col items-center gap-1.5 rounded-2xl px-4 py-3 transition-all duration-150 active:scale-95 ${
-        danger
-          ? "bg-red-500/15 text-red-400 active:bg-red-500/25"
-          : "bg-white/10 text-white active:bg-white/20"
-      }`}
-    >
-      {children}
-      <span className="text-[10px] font-medium">{label}</span>
-    </button>
   );
 }

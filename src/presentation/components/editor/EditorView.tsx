@@ -30,6 +30,7 @@ import { ExportDialog } from "@/presentation/components/ui/ExportDialog";
 import { Preset } from "@/data/operations/presets";
 import { TextItem } from "@/domain/entities/Overlay";
 import { ExportFormat } from "@/data/services/ImageRenderer";
+import { Spinner } from "@/presentation/components/ui/Spinner";
 
 const PRESETS_TAB_ID = "presets";
 const CROP_TAB_ID = "crop";
@@ -207,7 +208,7 @@ export function EditorView() {
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center bg-black">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-zinc-600 border-t-white" />
+        <Spinner />
       </div>
     );
   }
