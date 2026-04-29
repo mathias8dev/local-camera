@@ -2,21 +2,32 @@
 
 import { useState } from "react";
 import { RotateCcw, Pencil, Share2, Download } from "lucide-react";
-import { Dialog } from "@/presentation/components/ui/Dialog";
-import { Input } from "@/presentation/components/ui/Input";
+import { ExportDialog } from "@/presentation/components/ui/ExportDialog";
+import { ExportFormat } from "@/data/services/ImageRenderer";
 
 interface PhotoPreviewProps {
   previewUrl: string;
   isMirrored: boolean;
-  onSave: (name: string) => void;
+  onSave: (name: string, format: ExportFormat, quality?: number) => Promise<void>;
   onEdit: () => void;
   onShare: () => void;
   onRetake: () => void;
 }
 
 export function PhotoPreview({ previewUrl, isMirrored, onSave, onEdit, onShare, onRetake }: PhotoPreviewProps) {
-  const [showNameDialog, setShowNameDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [name, setName] = useState("");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("image/jpeg");
+  const [exportQuality, setExportQuality] = useState(85);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!name.trim() || saving) return;
+    setSaving(true);
+    const quality = exportFormat !== "image/png" ? exportQuality / 100 : undefined;
+    await onSave(name.trim(), exportFormat, quality);
+    setSaving(false);
+  };
 
   return (
     <div className="absolute inset-0 z-20 flex flex-col bg-black">
@@ -51,7 +62,7 @@ export function PhotoPreview({ previewUrl, isMirrored, onSave, onEdit, onShare, 
           <span className="hidden sm:inline">Partager</span>
         </button>
         <button
-          onClick={() => setShowNameDialog(true)}
+          onClick={() => setShowExportDialog(true)}
           className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-black transition-colors active:bg-zinc-300 sm:px-6 sm:py-3 sm:text-base"
         >
           <Download className="h-4 w-4" />
@@ -59,36 +70,18 @@ export function PhotoPreview({ previewUrl, isMirrored, onSave, onEdit, onShare, 
         </button>
       </div>
 
-      <Dialog
-        open={showNameDialog}
-        onClose={() => setShowNameDialog(false)}
-        title="Nom de la photo"
-      >
-        <Input
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && name.trim()) onSave(name.trim());
-          }}
-          placeholder="Ex : Coucher de soleil"
-        />
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={() => setShowNameDialog(false)}
-            className="rounded-lg px-5 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
-          >
-            Annuler
-          </button>
-          <button
-            onClick={() => onSave(name.trim())}
-            disabled={!name.trim()}
-            className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition-colors hover:bg-zinc-200 disabled:opacity-40"
-          >
-            Enregistrer
-          </button>
-        </div>
-      </Dialog>
+      <ExportDialog
+        open={showExportDialog}
+        name={name}
+        format={exportFormat}
+        quality={exportQuality}
+        saving={saving}
+        onNameChange={setName}
+        onFormatChange={setExportFormat}
+        onQualityChange={setExportQuality}
+        onSave={handleSave}
+        onClose={() => setShowExportDialog(false)}
+      />
     </div>
   );
 }

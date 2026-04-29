@@ -7,6 +7,7 @@ import { IndexedDBPhotoRepository } from "@/data/repositories/IndexedDBPhotoRepo
 import { IndexedDBFileStorage } from "@/data/storage/IndexedDBFileStorage";
 import { Photo } from "@/domain/entities/Photo";
 import type { Resolution } from "@/domain/entities/Resolution";
+import { exportCanvas, ExportFormat } from "@/data/services/ImageRenderer";
 
 const cameraService = new CameraService();
 const fileStorage = new IndexedDBFileStorage();
@@ -191,12 +192,19 @@ export function useCamera() {
   }, [timerMode, doCapture]);
 
   const savePhoto = useCallback(
-    async (name: string) => {
+    async (name: string, format: ExportFormat = "image/jpeg", quality?: number) => {
       if (!captured) return;
       let blob = captured.blob;
       if (captured.mirrored) {
         blob = await CameraService.applyMirror(blob, captured.width, captured.height);
       }
+      const bitmap = await createImageBitmap(blob);
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
+      bitmap.close();
+      blob = await exportCanvas(canvas, format, quality);
       const photo: Photo = {
         id: crypto.randomUUID(),
         name,
@@ -208,7 +216,8 @@ export function useCamera() {
       const downloadUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = `${name}.jpg`;
+      const ext = format === "image/jpeg" ? "jpg" : format === "image/webp" ? "webp" : "png";
+      link.download = `${name}.${ext}`;
       link.click();
       URL.revokeObjectURL(downloadUrl);
       URL.revokeObjectURL(captured.previewUrl);

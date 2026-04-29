@@ -37,11 +37,18 @@ export function renderImage(
   ctx.drawImage(image, 0, 0);
 }
 
-export function exportCanvas(canvas: HTMLCanvasElement): Promise<Blob> {
+export type ExportFormat = "image/png" | "image/jpeg" | "image/webp";
+
+export function exportCanvas(
+  canvas: HTMLCanvasElement,
+  format: ExportFormat = "image/png",
+  quality?: number,
+): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error("Export failed"))),
-      "image/png",
+      format,
+      quality,
     );
   });
 }

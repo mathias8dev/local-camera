@@ -25,10 +25,11 @@ import { DrawPanel } from "./DrawPanel";
 import { DrawOverlay } from "./DrawOverlay";
 import { TextPanel } from "./TextPanel";
 import { TextOverlay } from "./TextOverlay";
-import { Dialog } from "@/presentation/components/ui/Dialog";
-import { Input } from "@/presentation/components/ui/Input";
+import { CompareSlider } from "./CompareSlider";
+import { ExportDialog } from "@/presentation/components/ui/ExportDialog";
 import { Preset } from "@/data/operations/presets";
 import { TextItem } from "@/domain/entities/Overlay";
+import { ExportFormat } from "@/data/services/ImageRenderer";
 
 const PRESETS_TAB_ID = "presets";
 const CROP_TAB_ID = "crop";
@@ -87,7 +88,8 @@ export function EditorView() {
     canUndo,
     canRedo,
     comparing,
-    setComparing,
+    originalDataUrl,
+    toggleCompare,
     isCropping,
     cropRect,
     setCropRect,
@@ -108,6 +110,8 @@ export function EditorView() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("image/png");
+  const [exportQuality, setExportQuality] = useState(85);
 
   // Crop aspect ratio state
   const [cropAspectRatio, setCropAspectRatio] = useState<number | null>(null);
@@ -192,7 +196,8 @@ export function EditorView() {
   const handleSave = async () => {
     if (!name.trim() || saving) return;
     setSaving(true);
-    await save(name.trim());
+    const quality = exportFormat !== "image/png" ? exportQuality / 100 : undefined;
+    await save(name.trim(), exportFormat, quality);
     setSaving(false);
     router.push("/gallery");
   };
@@ -232,7 +237,7 @@ export function EditorView() {
       {/* Canvas area */}
       <div className="relative z-[1] flex min-h-0 flex-1 flex-col lg:flex-1">
         {/* Header */}
-        <div className="relative z-10 flex items-center gap-2 px-[max(0.75rem,env(safe-area-inset-left))] pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 lg:px-4 lg:pb-3">
+        <div className="relative z-20 flex items-center gap-2 px-[max(0.75rem,env(safe-area-inset-left))] pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 lg:px-4 lg:pb-3">
           <button
             onClick={() => router.push("/gallery")}
             className="flex items-center gap-1.5 rounded-full bg-zinc-900/80 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-zinc-800 active:bg-zinc-700"
@@ -264,12 +269,10 @@ export function EditorView() {
             <Redo2 className="h-4 w-4" />
           </button>
 
-          {/* Compare (hold to compare) */}
+          {/* Compare toggle */}
           <button
-            onPointerDown={() => setComparing(true)}
-            onPointerUp={() => setComparing(false)}
-            onPointerLeave={() => setComparing(false)}
-            aria-label="Comparer"
+            onClick={toggleCompare}
+            aria-label="Comparer avant/après"
             aria-pressed={comparing}
             className={`flex items-center justify-center rounded-full p-2 backdrop-blur-sm transition-colors ${
               comparing
@@ -282,10 +285,16 @@ export function EditorView() {
         </div>
 
         <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center px-4 pb-3">
-          <canvas
-            ref={canvasRef}
-            className="max-h-full max-w-full rounded-lg object-contain"
-          />
+          <div className="relative flex max-h-full max-w-full">
+            <canvas
+              ref={canvasRef}
+              className="max-h-full max-w-full rounded-lg object-contain"
+            />
+
+            {comparing && originalDataUrl && (
+              <CompareSlider originalSrc={originalDataUrl} />
+            )}
+          </div>
         </div>
 
         {/* Crop overlay */}
@@ -382,36 +391,18 @@ export function EditorView() {
         </div>
       </div>
 
-      <Dialog
+      <ExportDialog
         open={showSaveDialog}
+        name={name}
+        format={exportFormat}
+        quality={exportQuality}
+        saving={saving}
+        onNameChange={setName}
+        onFormatChange={setExportFormat}
+        onQualityChange={setExportQuality}
+        onSave={handleSave}
         onClose={() => setShowSaveDialog(false)}
-        title="Nom de la photo"
-      >
-        <Input
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && name.trim() && !saving) handleSave();
-          }}
-          placeholder="Ex : Coucher de soleil"
-        />
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={() => setShowSaveDialog(false)}
-            className="rounded-lg px-5 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
-          >
-            Annuler
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!name.trim() || saving}
-            className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition-colors hover:bg-zinc-200 disabled:opacity-40"
-          >
-            {saving ? "Enregistrement..." : "Enregistrer"}
-          </button>
-        </div>
-      </Dialog>
+      />
     </div>
   );
 }

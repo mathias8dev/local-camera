@@ -6,7 +6,7 @@ import { IndexedDBPhotoRepository } from "@/data/repositories/IndexedDBPhotoRepo
 import { OperationValues } from "@/domain/entities/EditorOperation";
 import { Photo } from "@/domain/entities/Photo";
 import { allOperations, defaultValues } from "@/data/operations/registry";
-import { renderImage, exportCanvas } from "@/data/services/ImageRenderer";
+import { renderImage, exportCanvas, ExportFormat } from "@/data/services/ImageRenderer";
 import { Preset } from "@/data/operations/presets";
 import { CropRect } from "@/presentation/components/editor/CropOverlay";
 import { Stroke, TextItem } from "@/domain/entities/Overlay";
@@ -96,8 +96,9 @@ export function useEditor(photoId: string | null) {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
-  // Compare toggle — when true the canvas renders with default values.
+  // Compare slider state.
   const [comparing, setComparing] = useState(false);
+  const [originalDataUrl, setOriginalDataUrl] = useState<string | null>(null);
 
   // Crop state
   const [isCropping, setIsCropping] = useState(false);
@@ -163,8 +164,8 @@ export function useEditor(photoId: string | null) {
   );
 
   useEffect(() => {
-    draw(comparing ? defaultValues : undefined);
-  }, [draw, comparing]);
+    draw();
+  }, [draw]);
 
   const updateParam = useCallback(
     (operationId: string, paramKey: string, value: number) => {
@@ -214,6 +215,21 @@ export function useEditor(photoId: string | null) {
     applyValues(next);
     syncFlags();
   }, [applyValues, syncFlags]);
+
+  const toggleCompare = useCallback(() => {
+    setComparing((prev) => {
+      if (prev) {
+        setOriginalDataUrl(null);
+        return false;
+      }
+      const img = imageRef.current;
+      if (!img) return false;
+      const offscreen = document.createElement("canvas");
+      renderImage(offscreen, img, allOperations, defaultValues);
+      setOriginalDataUrl(offscreen.toDataURL("image/jpeg", 0.85));
+      return true;
+    });
+  }, []);
 
   const resetAll = useCallback(() => {
     undoStackRef.current = [];
@@ -332,30 +348,22 @@ export function useEditor(photoId: string | null) {
   // ── Save (composite everything) ────────────────────────────────────────────
 
   const save = useCallback(
-    async (name: string) => {
+    async (name: string, format: ExportFormat = "image/png", quality?: number) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      // 1. Render base image with filters/transforms onto the editor canvas.
       draw();
 
-      // 2. Create an off-screen canvas for compositing.
       const composite = document.createElement("canvas");
       composite.width = canvas.width;
       composite.height = canvas.height;
       const ctx = composite.getContext("2d")!;
 
-      // 3. Draw the rendered base image.
       ctx.drawImage(canvas, 0, 0);
-
-      // 4. Composite drawing strokes.
       compositeStrokes(ctx, drawStrokesRef.current, composite.width, composite.height);
-
-      // 5. Composite text items.
       compositeText(ctx, textItemsRef.current, composite.width, composite.height);
 
-      // 6. Export and save.
-      const blob = await exportCanvas(composite);
+      const blob = await exportCanvas(composite, format, quality);
       const photo: Photo = {
         id: crypto.randomUUID(),
         name,
@@ -367,7 +375,8 @@ export function useEditor(photoId: string | null) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${name}.png`;
+      const ext = format === "image/jpeg" ? "jpg" : format === "image/webp" ? "webp" : "png";
+      link.download = `${name}.${ext}`;
       link.click();
       URL.revokeObjectURL(url);
       if (photoId) await fileStorage.delete(photoId);
@@ -390,7 +399,8 @@ export function useEditor(photoId: string | null) {
     canUndo,
     canRedo,
     comparing,
-    setComparing,
+    originalDataUrl,
+    toggleCompare,
     // crop
     isCropping,
     cropRect,
