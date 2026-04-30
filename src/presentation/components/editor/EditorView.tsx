@@ -30,6 +30,7 @@ import { ExportDialog } from "@/presentation/components/ui/ExportDialog";
 import { Preset } from "@/data/operations/presets";
 import { TextItem } from "@/domain/entities/Overlay";
 import { ExportFormat } from "@/data/services/ImageRenderer";
+import { downloadBlob } from "@/data/services/WebShareService";
 import { Button } from "@/presentation/components/ui/Button";
 import { Spinner } from "@/presentation/components/ui/Spinner";
 
@@ -198,10 +199,16 @@ export function EditorView() {
   const handleSave = async () => {
     if (!name.trim() || saving) return;
     setSaving(true);
-    const quality = exportFormat !== "image/png" ? exportQuality / 100 : undefined;
-    await save(name.trim(), exportFormat, quality);
-    setSaving(false);
-    router.push("/gallery");
+    try {
+      const quality = exportFormat !== "image/png" ? exportQuality / 100 : undefined;
+      const blob = await save(name.trim(), exportFormat, quality);
+      if (blob) {
+        downloadBlob(blob, name.trim());
+        router.push("/gallery");
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const bgGradient = useImageColors(colorSrc);

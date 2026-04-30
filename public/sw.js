@@ -21,6 +21,12 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
+  const url = new URL(request.url);
+
+  // Never cache Next.js RSC requests — they are streaming responses
+  // that break under cache-first strategies.
+  if (request.headers.get("rsc") || url.searchParams.has("_rsc")) return;
+
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)

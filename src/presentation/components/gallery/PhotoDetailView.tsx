@@ -91,6 +91,20 @@ export function PhotoDetailView({
     };
   }, []);
 
+  const goToPrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setDirection(-1);
+      setCurrentIndex((i) => i - 1);
+    }
+  }, [currentIndex]);
+
+  const goToNext = useCallback(() => {
+    if (currentIndex < photos.length - 1) {
+      setDirection(1);
+      setCurrentIndex((i) => i + 1);
+    }
+  }, [currentIndex, photos.length]);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -99,21 +113,7 @@ export function PhotoDetailView({
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  });
-
-  const goToPrev = () => {
-    if (currentIndex > 0) {
-      setDirection(-1);
-      setCurrentIndex((i) => i - 1);
-    }
-  };
-
-  const goToNext = () => {
-    if (currentIndex < photos.length - 1) {
-      setDirection(1);
-      setCurrentIndex((i) => i + 1);
-    }
-  };
+  }, [onClose, goToPrev, goToNext]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;

@@ -13,16 +13,12 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useImageColors } from "@/presentation/hooks/useImageColors";
-import { IndexedDBPhotoRepository } from "@/data/repositories/IndexedDBPhotoRepository";
-import { IndexedDBFileStorage } from "@/data/storage/IndexedDBFileStorage";
+import { fileStorage, photoRepository } from "@/data/instances";
 import { shareFile, downloadBlob } from "@/data/services/WebShareService";
 import { Photo } from "@/domain/entities/Photo";
 import { ConfirmDialog } from "@/presentation/components/ui/ConfirmDialog";
 import { ActionButton } from "@/presentation/components/ui/ActionButton";
 import { Spinner } from "@/presentation/components/ui/Spinner";
-
-const fileStorage = new IndexedDBFileStorage();
-const photoRepository = new IndexedDBPhotoRepository(fileStorage);
 
 const dateFormat = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -121,19 +117,19 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
     if (currentIndex < photos.length - 1) loadFull(currentIndex + 1);
   }, [currentIndex, photos.length, loadFull]);
 
-  const goToPrev = () => {
+  const goToPrev = useCallback(() => {
     if (currentIndex > 0) {
       setDirection(-1);
       setCurrentIndex((i) => i - 1);
     }
-  };
+  }, [currentIndex]);
 
-  const goToNext = () => {
+  const goToNext = useCallback(() => {
     if (currentIndex < photos.length - 1) {
       setDirection(1);
       setCurrentIndex((i) => i + 1);
     }
-  };
+  }, [currentIndex, photos.length]);
 
   // Keyboard nav
   useEffect(() => {
@@ -144,7 +140,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  });
+  }, [router, goToPrev, goToNext]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;

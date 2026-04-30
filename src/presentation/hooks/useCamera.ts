@@ -3,15 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CameraService, FacingMode } from "@/data/services/CameraService";
 import { WebGLPostProcessor } from "@/data/services/webgl/WebGLPostProcessor";
-import { IndexedDBPhotoRepository } from "@/data/repositories/IndexedDBPhotoRepository";
-import { IndexedDBFileStorage } from "@/data/storage/IndexedDBFileStorage";
+import { fileStorage, photoRepository } from "@/data/instances";
 import { Photo } from "@/domain/entities/Photo";
 import type { Resolution } from "@/domain/entities/Resolution";
 import { exportCanvas, ExportFormat } from "@/data/services/ImageRenderer";
 
 const cameraService = new CameraService();
-const fileStorage = new IndexedDBFileStorage();
-const photoRepository = new IndexedDBPhotoRepository(fileStorage);
 
 interface CapturedData {
   blob: Blob;
@@ -34,6 +31,7 @@ export function useCamera() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const postProcessorRef = useRef<WebGLPostProcessor | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(true);
 
   const [facingMode, setFacingMode] = useState<FacingMode>("environment");
   const [isReady, setIsReady] = useState(false);
@@ -129,9 +127,9 @@ export function useCamera() {
     };
   }, []);
 
-  // Cleanup countdown on unmount
   useEffect(() => {
     return () => {
+      mountedRef.current = false;
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };
   }, []);
@@ -139,39 +137,51 @@ export function useCamera() {
   const onVideoReady = useCallback(() => {
     setIsReady(true);
     if (!canvasRef.current || !videoRef.current) return;
-    if (!postProcessorRef.current) {
-      postProcessorRef.current = new WebGLPostProcessor();
-      postProcessorRef.current.setConfig({ enabled: enhanceEnabled });
-      postProcessorRef.current.attach(canvasRef.current);
+    if (postProcessorRef.current) {
+      postProcessorRef.current.dispose();
     }
+    postProcessorRef.current = new WebGLPostProcessor();
+    postProcessorRef.current.setConfig({ enabled: enhanceEnabled });
+    postProcessorRef.current.attach(canvasRef.current);
     postProcessorRef.current.startPreview(videoRef.current);
   }, [enhanceEnabled]);
 
+  const processCapture = useCallback(
+    async (): Promise<{ blob: Blob; width: number; height: number } | null> => {
+      if (!videoRef.current) return null;
+      const { blob, width, height } = await cameraService.capture(
+        videoRef.current,
+        selectedResolution ?? undefined,
+      );
+      let final = blob;
+      if (postProcessorRef.current) {
+        final = await postProcessorRef.current.processBlob(blob, width, height);
+      }
+      if (isMirrored) {
+        final = await CameraService.applyMirror(final, width, height);
+      }
+      return { blob: final, width, height };
+    },
+    [isMirrored, selectedResolution],
+  );
+
   const doCapture = useCallback(async () => {
-    if (!videoRef.current) return;
-    const { blob, width, height } = await cameraService.capture(
-      videoRef.current,
-      selectedResolution ?? undefined,
-    );
-    let final = blob;
-    if (postProcessorRef.current) {
-      final = await postProcessorRef.current.processBlob(blob, width, height);
-    }
-    if (isMirrored) {
-      final = await CameraService.applyMirror(final, width, height);
-    }
+    const result = await processCapture();
+    if (!result || !mountedRef.current) return;
+    const { blob, width, height } = result;
     const photoId = crypto.randomUUID();
     const name = `Photo ${new Date().toLocaleString("fr-FR")}`;
     const photo: Photo = { id: photoId, name, width, height, createdAt: new Date() };
-    await photoRepository.save(photo, final);
+    await photoRepository.save(photo, blob);
+    if (!mountedRef.current) return;
     setCaptured({
-      blob: final,
-      previewUrl: URL.createObjectURL(final),
+      blob,
+      previewUrl: URL.createObjectURL(blob),
       width,
       height,
       photoId,
     });
-  }, [isMirrored, selectedResolution]);
+  }, [processCapture]);
 
   const capture = useCallback(async () => {
     if (timerMode === 0) {
@@ -184,6 +194,10 @@ export function useCamera() {
     let remaining = timerMode;
 
     countdownIntervalRef.current = setInterval(async () => {
+      if (!mountedRef.current) {
+        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+        return;
+      }
       remaining -= 1;
       if (remaining <= 0) {
         if (countdownIntervalRef.current) {
@@ -199,8 +213,8 @@ export function useCamera() {
   }, [timerMode, doCapture]);
 
   const savePhoto = useCallback(
-    async (name: string, format: ExportFormat = "image/jpeg", quality?: number) => {
-      if (!captured) return;
+    async (name: string, format: ExportFormat = "image/jpeg", quality?: number): Promise<Blob | null> => {
+      if (!captured) return null;
       const bitmap = await createImageBitmap(captured.blob);
       const canvas = document.createElement("canvas");
       canvas.width = bitmap.width;
@@ -208,6 +222,8 @@ export function useCamera() {
       canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
       bitmap.close();
       const blob = await exportCanvas(canvas, format, quality);
+      canvas.width = 0;
+      canvas.height = 0;
       await photoRepository.delete(captured.photoId);
       const photo: Photo = {
         id: captured.photoId,
@@ -217,15 +233,9 @@ export function useCamera() {
         createdAt: new Date(),
       };
       await photoRepository.save(photo, blob);
-      const downloadUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      const ext = format === "image/jpeg" ? "jpg" : format === "image/webp" ? "webp" : "png";
-      link.download = `${name}.${ext}`;
-      link.click();
-      URL.revokeObjectURL(downloadUrl);
       URL.revokeObjectURL(captured.previewUrl);
       setCaptured(null);
+      return blob;
     },
     [captured],
   );
@@ -256,10 +266,14 @@ export function useCamera() {
     });
   }, []);
 
-  const switchCamera = useCallback(() => {
-    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
-    if (captured) URL.revokeObjectURL(captured.previewUrl);
+  const switchCamera = useCallback(async () => {
+    const prev = captured;
     setCaptured(null);
+    setFacingMode((f) => (f === "user" ? "environment" : "user"));
+    if (prev) {
+      URL.revokeObjectURL(prev.previewUrl);
+      await photoRepository.delete(prev.photoId);
+    }
   }, [captured]);
 
   // Feature 1: Grid toggle

@@ -1,12 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IndexedDBPhotoRepository } from "@/data/repositories/IndexedDBPhotoRepository";
-import { IndexedDBFileStorage } from "@/data/storage/IndexedDBFileStorage";
+import { photoRepository } from "@/data/instances";
 import { Photo } from "@/domain/entities/Photo";
-
-const fileStorage = new IndexedDBFileStorage();
-const photoRepository = new IndexedDBPhotoRepository(fileStorage);
 
 export interface StorageEstimate {
   usedMB: number;

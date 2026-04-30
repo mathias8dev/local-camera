@@ -132,14 +132,16 @@ export function GalleryView() {
 
   const handleBatchShare = async () => {
     const selectedPhotos = displayedPhotos.filter((p) => selectedIds.has(p.id));
-    const files: File[] = [];
+    const loaded: { photo: Photo; blob: Blob }[] = [];
     for (const photo of selectedPhotos) {
       const blob = await getFullBlob(photo.id);
-      if (blob) {
-        files.push(new File([blob], `${photo.name}.jpg`, { type: blob.type }));
-      }
+      if (blob) loaded.push({ photo, blob });
     }
-    if (files.length > 0 && canShare() && navigator.canShare({ files })) {
+    if (loaded.length === 0) return;
+    const files = loaded.map(
+      ({ photo, blob }) => new File([blob], `${photo.name}.jpg`, { type: blob.type }),
+    );
+    if (canShare() && navigator.canShare({ files })) {
       try {
         await navigator.share({ files });
         return;
@@ -147,9 +149,8 @@ export function GalleryView() {
         // fall through to individual downloads
       }
     }
-    for (const photo of selectedPhotos) {
-      const blob = await getFullBlob(photo.id);
-      if (blob) downloadBlob(blob, photo.name);
+    for (const { photo, blob } of loaded) {
+      downloadBlob(blob, photo.name);
     }
   };
 

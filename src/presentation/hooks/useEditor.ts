@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IndexedDBFileStorage } from "@/data/storage/IndexedDBFileStorage";
-import { IndexedDBPhotoRepository } from "@/data/repositories/IndexedDBPhotoRepository";
+import { fileStorage, photoRepository } from "@/data/instances";
 import { OperationValues } from "@/domain/entities/EditorOperation";
 import { Photo } from "@/domain/entities/Photo";
 import { allOperations, defaultValues } from "@/data/operations/registry";
@@ -10,9 +9,6 @@ import { renderImage, exportCanvas, ExportFormat } from "@/data/services/ImageRe
 import { Preset } from "@/data/operations/presets";
 import { CropRect } from "@/presentation/components/editor/CropOverlay";
 import { Stroke, TextItem } from "@/domain/entities/Overlay";
-
-const fileStorage = new IndexedDBFileStorage();
-const photoRepository = new IndexedDBPhotoRepository(fileStorage);
 
 /** Draw all strokes onto a canvas context using normalized coordinates. */
 function compositeStrokes(
@@ -77,16 +73,14 @@ function compositeText(
 export function useEditor(photoId: string | null) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const mountedRef = useRef(true);
   const [values, setValues] = useState<OperationValues>({ ...defaultValues });
-  // Always-current mirror of `values` so callbacks can read it without
-  // becoming stale or triggering extra re-renders.
   const valuesRef = useRef<OperationValues>(values);
 
   const [imageReady, setImageReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [colorSrc, setColorSrc] = useState<string | null>(null);
-  // Incremented to force a redraw without changing operation values.
   const [drawTrigger, setDrawTrigger] = useState(0);
 
   // Undo / redo stacks — each entry is a full OperationValues snapshot.
@@ -103,6 +97,7 @@ export function useEditor(photoId: string | null) {
   // Crop state
   const [isCropping, setIsCropping] = useState(false);
   const [cropRect, setCropRect] = useState<CropRect | null>(null);
+  const intermediateFileIdRef = useRef<string | null>(null);
 
   // ── Overlay state ──────────────────────────────────────────────────────────
   const [drawStrokes, setDrawStrokes] = useState<Stroke[]>([]);
@@ -124,12 +119,24 @@ export function useEditor(photoId: string | null) {
   }, []);
 
   useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (intermediateFileIdRef.current) {
+        fileStorage.delete(intermediateFileIdRef.current);
+        intermediateFileIdRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!photoId) {
       setError("Aucune photo à éditer.");
       setLoading(false);
       return;
     }
+    let cancelled = false;
     fileStorage.get(photoId).then((blob) => {
+      if (cancelled) return;
       if (!blob) {
         setError("Photo introuvable.");
         setLoading(false);
@@ -139,13 +146,21 @@ export function useEditor(photoId: string | null) {
       setColorSrc(thumbUrl);
       const img = new Image();
       img.onload = () => {
+        if (cancelled) return;
         imageRef.current = img;
         setImageReady(true);
+        setLoading(false);
+      };
+      img.onerror = () => {
+        if (cancelled) return;
+        URL.revokeObjectURL(thumbUrl);
+        setError("Impossible de charger l'image.");
         setLoading(false);
       };
       img.src = thumbUrl;
     });
     return () => {
+      cancelled = true;
       setColorSrc((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return null;
@@ -259,37 +274,44 @@ export function useEditor(photoId: string | null) {
    * the editor with the new image so all subsequent edits start from the
    * cropped source.
    */
-  const applyCrop = useCallback(async () => {
+  const computeCrop = useCallback(async (): Promise<Blob | null> => {
     const canvas = canvasRef.current;
     const img = imageRef.current;
-    if (!canvas || !img || !cropRect) return;
+    if (!canvas || !img || !cropRect) return null;
 
-    // Re-render to ensure the canvas is up to date.
     renderImage(canvas, img, allOperations, valuesRef.current);
 
-    // Compute the pixel crop region from normalized coords.
     const srcX = Math.round(cropRect.x * canvas.width);
     const srcY = Math.round(cropRect.y * canvas.height);
     const srcW = Math.max(1, Math.round(cropRect.width * canvas.width));
     const srcH = Math.max(1, Math.round(cropRect.height * canvas.height));
 
-    // Draw the cropped region to a new canvas.
     const out = document.createElement("canvas");
     out.width  = srcW;
     out.height = srcH;
     const outCtx = out.getContext("2d")!;
     outCtx.drawImage(canvas, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
 
-    // Export and store the new blob.
     const blob = await exportCanvas(out);
+    out.width = 0;
+    out.height = 0;
+    return blob;
+  }, [canvasRef, cropRect]);
+
+  const reloadSource = useCallback(async (blob: Blob) => {
+    if (intermediateFileIdRef.current) {
+      await fileStorage.delete(intermediateFileIdRef.current);
+    }
     const newId = crypto.randomUUID();
+    intermediateFileIdRef.current = newId;
     await fileStorage.save(newId, blob);
 
-    // Load the cropped image as the new source and reset edit values.
     const newImg = new Image();
+    const blobUrl = URL.createObjectURL(blob);
     newImg.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+      if (!mountedRef.current) return;
       imageRef.current = newImg;
-      // Reset operation values so edits are relative to new image.
       undoStackRef.current = [];
       redoStackRef.current = [];
       setCanUndo(false);
@@ -297,12 +319,22 @@ export function useEditor(photoId: string | null) {
       applyValues({ ...defaultValues });
       setIsCropping(false);
       setCropRect(null);
-      // Trigger a redraw via the drawTrigger dependency.
       setDrawTrigger((n) => n + 1);
-      URL.revokeObjectURL(newImg.src);
     };
-    newImg.src = URL.createObjectURL(blob);
-  }, [canvasRef, cropRect, applyValues]);
+    newImg.onerror = () => {
+      URL.revokeObjectURL(blobUrl);
+      fileStorage.delete(newId);
+      if (intermediateFileIdRef.current === newId) {
+        intermediateFileIdRef.current = null;
+      }
+    };
+    newImg.src = blobUrl;
+  }, [applyValues]);
+
+  const applyCrop = useCallback(async () => {
+    const blob = await computeCrop();
+    if (blob) await reloadSource(blob);
+  }, [computeCrop, reloadSource]);
 
   // ── Draw stroke actions ────────────────────────────────────────────────────
 
@@ -348,9 +380,9 @@ export function useEditor(photoId: string | null) {
   // ── Save (composite everything) ────────────────────────────────────────────
 
   const save = useCallback(
-    async (name: string, format: ExportFormat = "image/png", quality?: number) => {
+    async (name: string, format: ExportFormat = "image/png", quality?: number): Promise<Blob | null> => {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas) return null;
 
       draw();
 
@@ -363,23 +395,25 @@ export function useEditor(photoId: string | null) {
       compositeStrokes(ctx, drawStrokesRef.current, composite.width, composite.height);
       compositeText(ctx, textItemsRef.current, composite.width, composite.height);
 
+      const savedW = composite.width;
+      const savedH = composite.height;
       const blob = await exportCanvas(composite, format, quality);
+      composite.width = 0;
+      composite.height = 0;
       const photo: Photo = {
         id: crypto.randomUUID(),
         name,
-        width: composite.width,
-        height: composite.height,
+        width: savedW,
+        height: savedH,
         createdAt: new Date(),
       };
       await photoRepository.save(photo, blob);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      const ext = format === "image/jpeg" ? "jpg" : format === "image/webp" ? "webp" : "png";
-      link.download = `${name}.${ext}`;
-      link.click();
-      URL.revokeObjectURL(url);
       if (photoId) await fileStorage.delete(photoId);
+      if (intermediateFileIdRef.current) {
+        await fileStorage.delete(intermediateFileIdRef.current);
+        intermediateFileIdRef.current = null;
+      }
+      return blob;
     },
     [draw, photoId],
   );
