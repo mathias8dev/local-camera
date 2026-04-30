@@ -4,11 +4,10 @@ import { useState } from "react";
 import { RotateCcw, Pencil, Share2, Download } from "lucide-react";
 import { ExportDialog } from "@/presentation/components/ui/ExportDialog";
 import { ExportFormat } from "@/data/services/ImageRenderer";
-import { downloadBlob } from "@/data/services/WebShareService";
 
 interface PhotoPreviewProps {
   previewUrl: string;
-  onSave: (name: string, format: ExportFormat, quality?: number) => Promise<Blob | null>;
+  onSave: (name: string, format: ExportFormat, quality?: number) => Promise<void>;
   onEdit: () => void;
   onShare: () => void;
   onRetake: () => void;
@@ -26,8 +25,7 @@ export function PhotoPreview({ previewUrl, onSave, onEdit, onShare, onRetake }: 
     setSaving(true);
     try {
       const quality = exportFormat !== "image/png" ? exportQuality / 100 : undefined;
-      const blob = await onSave(name.trim(), exportFormat, quality);
-      if (blob) downloadBlob(blob, name.trim());
+      await onSave(name.trim(), exportFormat, quality);
     } finally {
       setSaving(false);
     }

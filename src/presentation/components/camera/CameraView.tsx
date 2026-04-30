@@ -12,7 +12,8 @@ import {
   Timer,
 } from "lucide-react";
 import { useCamera } from "@/presentation/hooks/useCamera";
-import { shareFile } from "@/data/services/WebShareService";
+import { shareFile, downloadBlob } from "@/data/services/WebShareService";
+import type { ExportFormat } from "@/data/services/ImageRenderer";
 
 import { CaptureButton } from "./CaptureButton";
 import { PhotoPreview } from "./PhotoPreview";
@@ -26,6 +27,7 @@ export function CameraView() {
     isReady,
     previewUrl,
     capturedBlob,
+    dismissPreview,
     error,
     isMirrored,
     enhanceEnabled,
@@ -96,6 +98,15 @@ export function CameraView() {
   const handleTouchEnd = useCallback(() => {
     pinchStartDistRef.current = null;
   }, []);
+
+  const handleSave = async (name: string, format: ExportFormat, quality?: number) => {
+    const blob = await savePhoto(name, format, quality);
+    if (blob) {
+      downloadBlob(blob, name);
+      dismissPreview();
+      router.push("/gallery");
+    }
+  };
 
   const handleEdit = async () => {
     const id = await sendToEditor();
@@ -181,7 +192,7 @@ export function CameraView() {
       {previewUrl && (
         <PhotoPreview
           previewUrl={previewUrl}
-          onSave={savePhoto}
+          onSave={handleSave}
           onEdit={handleEdit}
           onShare={handleShare}
           onRetake={retake}

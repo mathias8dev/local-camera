@@ -233,17 +233,22 @@ export function useCamera() {
         createdAt: new Date(),
       };
       await photoRepository.save(photo, blob);
-      URL.revokeObjectURL(captured.previewUrl);
-      setCaptured(null);
       return blob;
     },
     [captured],
   );
 
+  const dismissPreview = useCallback(() => {
+    if (!captured) return;
+    URL.revokeObjectURL(captured.previewUrl);
+    setCaptured(null);
+  }, [captured]);
+
   const sendToEditor = useCallback(async (): Promise<string | null> => {
     if (!captured) return null;
     const id = crypto.randomUUID();
     await fileStorage.save(id, captured.blob);
+    await photoRepository.delete(captured.photoId);
     URL.revokeObjectURL(captured.previewUrl);
     setCaptured(null);
     return id;
@@ -353,6 +358,7 @@ export function useCamera() {
     onVideoReady,
     capture,
     savePhoto,
+    dismissPreview,
     sendToEditor,
     retake,
     toggleMirror,

@@ -6,11 +6,18 @@ export function canShare(): boolean {
   );
 }
 
+function extForType(type: string): string {
+  if (type === "image/png") return "png";
+  if (type === "image/webp") return "webp";
+  return "jpg";
+}
+
 export async function shareFile(
   blob: Blob,
   name: string,
 ): Promise<boolean> {
-  const file = new File([blob], `${name}.jpg`, { type: blob.type });
+  const ext = extForType(blob.type);
+  const file = new File([blob], `${name}.${ext}`, { type: blob.type });
   if (canShare() && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({ title: name, files: [file] });
@@ -24,10 +31,11 @@ export async function shareFile(
 }
 
 export function downloadBlob(blob: Blob, name: string): void {
+  const ext = extForType(blob.type);
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${name}.jpg`;
+  link.download = `${name}.${ext}`;
   link.click();
   URL.revokeObjectURL(url);
 }

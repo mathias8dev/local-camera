@@ -1,7 +1,14 @@
-const CACHE_NAME = "local-camera-v1";
+const CACHE_NAME = "local-camera-v2";
 
-self.addEventListener("install", () => {
-  self.skipWaiting();
+const APP_SHELL = ["/", "/camera", "/gallery", "/editor"];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -23,21 +30,11 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
-  // Never cache Next.js RSC requests — they are streaming responses
-  // that break under cache-first strategies.
+  // Never cache Next.js RSC requests.
   if (request.headers.get("rsc") || url.searchParams.has("_rsc")) return;
 
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          return response;
-        })
-        .catch(() => caches.match(request)),
-    );
-  } else {
+  // Immutable hashed assets — cache-first.
+  if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>
@@ -53,5 +50,22 @@ self.addEventListener("fetch", (event) => {
           }),
       ),
     );
+    return;
   }
+
+  // Everything else — stale-while-revalidate.
+  // Serve from cache immediately, fetch in background to update for next visit.
+  event.respondWith(
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.match(request).then((cached) => {
+        const fetched = fetch(request)
+          .then((response) => {
+            if (response.ok) cache.put(request, response.clone());
+            return response;
+          })
+          .catch(() => cached);
+        return cached || fetched;
+      }),
+    ),
+  );
 });
