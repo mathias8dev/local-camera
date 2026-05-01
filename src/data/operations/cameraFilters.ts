@@ -16,9 +16,35 @@ export interface CameraFilter {
       | "filterGlitch"
       | "filterPixelate"
       | "filterMirror"
+      | "filterSketch"
+      | "filterCartoon"
     >
   >;
 }
+
+export type FilterKey = keyof CameraFilter["values"];
+
+export interface FilterParamMeta {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+}
+
+export const FILTER_PARAM_META: Record<FilterKey, FilterParamMeta> = {
+  filterBrightness:    { label: "Luminosité",    min: 0.5, max: 2.0, step: 0.05 },
+  filterSaturation:    { label: "Saturation",    min: 0.0, max: 2.0, step: 0.05 },
+  filterWarmth:        { label: "Chaleur",       min: -1.0, max: 1.0, step: 0.05 },
+  filterSepia:         { label: "Sépia",         min: 0.0, max: 1.0, step: 0.05 },
+  filterVignette:      { label: "Vignette",      min: 0.0, max: 2.0, step: 0.05 },
+  filterFisheye:       { label: "Fisheye",       min: 0.0, max: 1.0, step: 0.05 },
+  filterKaleidoscope:  { label: "Kaléidoscope",  min: 0.0, max: 1.0, step: 0.05 },
+  filterGlitch:        { label: "Glitch",        min: 0.0, max: 1.0, step: 0.05 },
+  filterPixelate:      { label: "Pixelisation",  min: 0.0, max: 1.0, step: 0.05 },
+  filterMirror:        { label: "Miroir",        min: 0.0, max: 1.0, step: 0.05 },
+  filterSketch:        { label: "Crayon",        min: 0.0, max: 1.0, step: 0.05 },
+  filterCartoon:       { label: "Cartoon",       min: 0.0, max: 1.0, step: 0.05 },
+};
 
 export const cameraFilters: CameraFilter[] = [
   { id: "none", label: "Aucun", values: {} },
@@ -81,5 +107,15 @@ export const cameraFilters: CameraFilter[] = [
     id: "mirror",
     label: "Miroir",
     values: { filterMirror: 1.0 },
+  },
+  {
+    id: "sketch",
+    label: "Crayon",
+    values: { filterSketch: 1.0 },
+  },
+  {
+    id: "cartoon",
+    label: "Cartoon",
+    values: { filterCartoon: 1.0, filterSaturation: 1.4 },
   },
 ];

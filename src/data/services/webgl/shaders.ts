@@ -27,6 +27,8 @@ uniform float u_filterKaleidoscope;
 uniform float u_filterGlitch;
 uniform float u_filterPixelate;
 uniform float u_filterMirror;
+uniform float u_filterSketch;
+uniform float u_filterCartoon;
 varying vec2 v_texCoord;
 
 #define PI 3.14159265359
@@ -129,6 +131,36 @@ void main() {
   vec2 vigUV = v_texCoord - 0.5;
   float vig = 1.0 - dot(vigUV, vigUV) * u_filterVignette;
   color *= clamp(vig, 0.0, 1.0);
+
+  // Sketch & Cartoon (shared Sobel edge detection)
+  if (u_filterSketch > 0.0 || u_filterCartoon > 0.0) {
+    vec3 lumW = vec3(0.2126, 0.7152, 0.0722);
+    float lumT  = dot(top.rgb, lumW);
+    float lumB  = dot(bottom.rgb, lumW);
+    float lumL  = dot(left.rgb, lumW);
+    float lumR  = dot(right.rgb, lumW);
+    float lumTL = dot(texture2D(u_texture, uv + vec2(-u_texelSize.x,  u_texelSize.y)).rgb, lumW);
+    float lumTR = dot(texture2D(u_texture, uv + vec2( u_texelSize.x,  u_texelSize.y)).rgb, lumW);
+    float lumBL = dot(texture2D(u_texture, uv + vec2(-u_texelSize.x, -u_texelSize.y)).rgb, lumW);
+    float lumBR = dot(texture2D(u_texture, uv + vec2( u_texelSize.x, -u_texelSize.y)).rgb, lumW);
+    float gx = -lumTL - 2.0 * lumL - lumBL + lumTR + 2.0 * lumR + lumBR;
+    float gy = -lumTL - 2.0 * lumT - lumTR + lumBL + 2.0 * lumB + lumBR;
+    float edge = sqrt(gx * gx + gy * gy);
+
+    if (u_filterSketch > 0.0) {
+      float ink = clamp(edge * 4.0, 0.0, 1.0);
+      vec3 sketch = vec3(1.0 - ink);
+      color = mix(color, sketch, u_filterSketch);
+    }
+
+    if (u_filterCartoon > 0.0) {
+      float levels = 6.0;
+      vec3 quantized = floor(color * levels + 0.5) / levels;
+      float outline = clamp(edge * 5.0, 0.0, 1.0);
+      vec3 cartoon = quantized * (1.0 - outline * 0.85);
+      color = mix(color, cartoon, u_filterCartoon);
+    }
+  }
 
   gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
 }

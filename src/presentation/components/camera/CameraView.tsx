@@ -10,9 +10,12 @@ import {
   Grid3x3,
   Zap,
   Timer,
+  SlidersHorizontal,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useCamera } from "@/presentation/hooks/useCamera";
 import { useVideoRecorder, VideoRecordingResult } from "@/presentation/hooks/useVideoRecorder";
+import { FILTER_PARAM_META, type FilterKey } from "@/data/operations/cameraFilters";
 import { mediaRepository } from "@/data/instances";
 import { MediaItem } from "@/domain/entities/MediaItem";
 import { shareFile } from "@/data/services/WebShareService";
@@ -55,8 +58,12 @@ export function CameraView() {
     toggleMirror,
     toggleEnhance,
     activeFilter,
+    filterIntensity,
+    filterValues,
     cameraFilters,
     selectFilter,
+    setFilterIntensity,
+    setFilterParam,
     switchCamera,
     showGrid,
     toggleGrid,
@@ -77,6 +84,7 @@ export function CameraView() {
 
   const [mode, setMode] = useState<CameraMode>("photo");
   const [videoResult, setVideoResult] = useState<VideoRecordingResult | null>(null);
+  const [showFilterControls, setShowFilterControls] = useState(false);
 
   const pinchStartDistRef = useRef<number | null>(null);
   const pinchStartZoomRef = useRef<number>(1);
@@ -403,24 +411,88 @@ export function CameraView() {
               </div>
             </div>
 
-            {/* Filter strip */}
+            {/* Filter strip + tune button */}
             {!isRecording && (
-              <div className="mt-4 -mx-6 flex gap-2 overflow-x-auto px-6 scrollbar-none">
-                {cameraFilters.map((f) => (
+              <div className="mt-4 flex items-center gap-2">
+                <div className="-mx-6 flex flex-1 gap-2 overflow-x-auto px-6 scrollbar-none">
+                  {cameraFilters.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => {
+                        selectFilter(f);
+                        setShowFilterControls(false);
+                      }}
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium backdrop-blur-sm transition-colors ${
+                        activeFilter.id === f.id
+                          ? "bg-white text-black"
+                          : "bg-white/15 text-white/80 active:bg-white/25"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+                {activeFilter.id !== "none" && (
                   <button
-                    key={f.id}
-                    onClick={() => selectFilter(f)}
-                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium backdrop-blur-sm transition-colors ${
-                      activeFilter.id === f.id
-                        ? "bg-white text-black"
-                        : "bg-white/15 text-white/80 active:bg-white/25"
+                    onClick={() => setShowFilterControls((prev) => !prev)}
+                    aria-label="Réglages du filtre"
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${
+                      showFilterControls ? "bg-white text-black" : "bg-white/20 text-white"
                     }`}
                   >
-                    {f.label}
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
                   </button>
-                ))}
+                )}
               </div>
             )}
+
+            {/* Filter controls */}
+            <AnimatePresence>
+              {!isRecording && activeFilter.id !== "none" && showFilterControls && (
+                <motion.div
+                  key="filter-controls"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-2 space-y-1.5">
+                    <div className="flex items-center gap-3">
+                      <span className="w-20 shrink-0 text-[11px] text-white/60 text-right">Intensité</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={filterIntensity}
+                        onChange={(e) => setFilterIntensity(Number(e.target.value))}
+                        className="h-1 flex-1 appearance-none rounded-full bg-white/20 accent-white [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                      />
+                      <span className="w-8 text-[11px] text-white/60 tabular-nums">{filterIntensity}%</span>
+                    </div>
+                    {(Object.keys(activeFilter.values) as FilterKey[]).map((key) => {
+                      const meta = FILTER_PARAM_META[key];
+                      const value = filterValues[key] ?? 0;
+                      return (
+                        <div key={key} className="flex items-center gap-3">
+                          <span className="w-20 shrink-0 text-[11px] text-white/60 text-right">{meta.label}</span>
+                          <input
+                            type="range"
+                            min={meta.min}
+                            max={meta.max}
+                            step={meta.step}
+                            value={value}
+                            onChange={(e) => setFilterParam(key, Number(e.target.value))}
+                            className="h-1 flex-1 appearance-none rounded-full bg-white/20 accent-white [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                          />
+                          <span className="w-8 text-[11px] text-white/60 tabular-nums">{value.toFixed(1)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Mode toggle */}
             {!isRecording && (

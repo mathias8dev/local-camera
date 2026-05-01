@@ -14,6 +14,8 @@ export interface PostProcessorConfig {
   filterGlitch: number;
   filterPixelate: number;
   filterMirror: number;
+  filterSketch: number;
+  filterCartoon: number;
 }
 
 export const DEFAULT_POST_PROCESSOR_CONFIG: PostProcessorConfig = {
@@ -32,4 +34,6 @@ export const DEFAULT_POST_PROCESSOR_CONFIG: PostProcessorConfig = {
   filterGlitch: 0.0,
   filterPixelate: 0.0,
   filterMirror: 0.0,
+  filterSketch: 0.0,
+  filterCartoon: 0.0,
 };

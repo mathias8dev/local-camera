@@ -7,8 +7,8 @@ import { fileStorage, mediaRepository } from "@/data/instances";
 import { MediaItem } from "@/domain/entities/MediaItem";
 import type { Resolution } from "@/domain/entities/Resolution";
 import { exportCanvas, ExportFormat } from "@/data/services/ImageRenderer";
-import { DEFAULT_POST_PROCESSOR_CONFIG } from "@/domain/entities/PostProcessorConfig";
-import { cameraFilters, type CameraFilter } from "@/data/operations/cameraFilters";
+import { DEFAULT_POST_PROCESSOR_CONFIG, type PostProcessorConfig } from "@/domain/entities/PostProcessorConfig";
+import { cameraFilters, type CameraFilter, type FilterKey } from "@/data/operations/cameraFilters";
 
 const cameraService = new CameraService();
 
@@ -41,6 +41,8 @@ export function useCamera() {
   const [isMirrored, setIsMirrored] = useState(false);
   const [enhanceEnabled, setEnhanceEnabled] = useState(true);
   const [activeFilter, setActiveFilter] = useState<CameraFilter>(cameraFilters[0]);
+  const [filterIntensity, setFilterIntensityState] = useState(100);
+  const [filterValues, setFilterValues] = useState<Partial<Record<FilterKey, number>>>({});
   const [resolutions, setResolutions] = useState<Resolution[]>([]);
   const [selectedResolution, setSelectedResolution] = useState<Resolution | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -140,6 +142,33 @@ export function useCamera() {
     };
   }, []);
 
+  const FILTER_KEYS: FilterKey[] = [
+    "filterBrightness", "filterSaturation", "filterWarmth", "filterSepia",
+    "filterVignette", "filterFisheye", "filterKaleidoscope", "filterGlitch",
+    "filterPixelate", "filterMirror", "filterSketch", "filterCartoon",
+  ];
+
+  const computeFilterValues = useCallback((filter: CameraFilter, intensity: number): Partial<Record<FilterKey, number>> => {
+    const t = intensity / 100;
+    const vals: Partial<Record<FilterKey, number>> = {};
+    for (const key of FILTER_KEYS) {
+      if (key in filter.values) {
+        const def = DEFAULT_POST_PROCESSOR_CONFIG[key];
+        const target = filter.values[key]!;
+        vals[key] = def + (target - def) * t;
+      }
+    }
+    return vals;
+  }, []);
+
+  const pushFilterToGL = useCallback((vals: Partial<Record<FilterKey, number>>) => {
+    const config: Partial<PostProcessorConfig> = {};
+    for (const key of FILTER_KEYS) {
+      config[key] = vals[key] ?? DEFAULT_POST_PROCESSOR_CONFIG[key];
+    }
+    postProcessorRef.current?.setConfig(config);
+  }, []);
+
   const onVideoReady = useCallback(() => {
     setIsReady(true);
     if (!canvasRef.current || !videoRef.current) return;
@@ -147,22 +176,11 @@ export function useCamera() {
       postProcessorRef.current.dispose();
     }
     postProcessorRef.current = new WebGLPostProcessor();
-    postProcessorRef.current.setConfig({
-      enabled: enhanceEnabled,
-      filterBrightness: activeFilter.values.filterBrightness ?? DEFAULT_POST_PROCESSOR_CONFIG.filterBrightness,
-      filterSaturation: activeFilter.values.filterSaturation ?? DEFAULT_POST_PROCESSOR_CONFIG.filterSaturation,
-      filterWarmth: activeFilter.values.filterWarmth ?? DEFAULT_POST_PROCESSOR_CONFIG.filterWarmth,
-      filterSepia: activeFilter.values.filterSepia ?? DEFAULT_POST_PROCESSOR_CONFIG.filterSepia,
-      filterVignette: activeFilter.values.filterVignette ?? DEFAULT_POST_PROCESSOR_CONFIG.filterVignette,
-      filterFisheye: activeFilter.values.filterFisheye ?? DEFAULT_POST_PROCESSOR_CONFIG.filterFisheye,
-      filterKaleidoscope: activeFilter.values.filterKaleidoscope ?? DEFAULT_POST_PROCESSOR_CONFIG.filterKaleidoscope,
-      filterGlitch: activeFilter.values.filterGlitch ?? DEFAULT_POST_PROCESSOR_CONFIG.filterGlitch,
-      filterPixelate: activeFilter.values.filterPixelate ?? DEFAULT_POST_PROCESSOR_CONFIG.filterPixelate,
-      filterMirror: activeFilter.values.filterMirror ?? DEFAULT_POST_PROCESSOR_CONFIG.filterMirror,
-    });
+    postProcessorRef.current.setConfig({ enabled: enhanceEnabled });
+    pushFilterToGL(filterValues);
     postProcessorRef.current.attach(canvasRef.current);
     postProcessorRef.current.startPreview(videoRef.current);
-  }, [enhanceEnabled, activeFilter]);
+  }, [enhanceEnabled, filterValues, pushFilterToGL]);
 
   const processCapture = useCallback(
     async (): Promise<{ blob: Blob; width: number; height: number } | null> => {
@@ -293,19 +311,29 @@ export function useCamera() {
 
   const selectFilter = useCallback((filter: CameraFilter) => {
     setActiveFilter(filter);
-    postProcessorRef.current?.setConfig({
-      filterBrightness: filter.values.filterBrightness ?? DEFAULT_POST_PROCESSOR_CONFIG.filterBrightness,
-      filterSaturation: filter.values.filterSaturation ?? DEFAULT_POST_PROCESSOR_CONFIG.filterSaturation,
-      filterWarmth: filter.values.filterWarmth ?? DEFAULT_POST_PROCESSOR_CONFIG.filterWarmth,
-      filterSepia: filter.values.filterSepia ?? DEFAULT_POST_PROCESSOR_CONFIG.filterSepia,
-      filterVignette: filter.values.filterVignette ?? DEFAULT_POST_PROCESSOR_CONFIG.filterVignette,
-      filterFisheye: filter.values.filterFisheye ?? DEFAULT_POST_PROCESSOR_CONFIG.filterFisheye,
-      filterKaleidoscope: filter.values.filterKaleidoscope ?? DEFAULT_POST_PROCESSOR_CONFIG.filterKaleidoscope,
-      filterGlitch: filter.values.filterGlitch ?? DEFAULT_POST_PROCESSOR_CONFIG.filterGlitch,
-      filterPixelate: filter.values.filterPixelate ?? DEFAULT_POST_PROCESSOR_CONFIG.filterPixelate,
-      filterMirror: filter.values.filterMirror ?? DEFAULT_POST_PROCESSOR_CONFIG.filterMirror,
+    setFilterIntensityState(100);
+    const vals = computeFilterValues(filter, 100);
+    setFilterValues(vals);
+    pushFilterToGL(vals);
+  }, [computeFilterValues, pushFilterToGL]);
+
+  const setFilterIntensity = useCallback((intensity: number) => {
+    setFilterIntensityState(intensity);
+    setActiveFilter((current) => {
+      const vals = computeFilterValues(current, intensity);
+      setFilterValues(vals);
+      pushFilterToGL(vals);
+      return current;
     });
-  }, []);
+  }, [computeFilterValues, pushFilterToGL]);
+
+  const setFilterParam = useCallback((key: FilterKey, value: number) => {
+    setFilterValues((prev) => {
+      const next = { ...prev, [key]: value };
+      pushFilterToGL(next);
+      return next;
+    });
+  }, [pushFilterToGL]);
 
   const switchCamera = useCallback(async () => {
     const prev = captured;
@@ -401,8 +429,12 @@ export function useCamera() {
     toggleMirror,
     toggleEnhance,
     activeFilter,
+    filterIntensity,
+    filterValues,
     cameraFilters,
     selectFilter,
+    setFilterIntensity,
+    setFilterParam,
     switchCamera,
     // Feature 1
     showGrid,

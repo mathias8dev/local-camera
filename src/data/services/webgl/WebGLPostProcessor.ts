@@ -61,6 +61,8 @@ function getUniforms(
     "u_filterGlitch",
     "u_filterPixelate",
     "u_filterMirror",
+    "u_filterSketch",
+    "u_filterCartoon",
     "u_resolution",
   ];
   const locs: UniformLocations = {};
@@ -86,6 +88,8 @@ const PASSTHROUGH: PostProcessorConfig = {
   filterGlitch: 0,
   filterPixelate: 0,
   filterMirror: 0,
+  filterSketch: 0,
+  filterCartoon: 0,
 };
 
 const QUAD = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
@@ -208,6 +212,8 @@ export class WebGLPostProcessor {
     gl.uniform1f(uniforms.u_filterGlitch, this.config.filterGlitch);
     gl.uniform1f(uniforms.u_filterPixelate, this.config.filterPixelate);
     gl.uniform1f(uniforms.u_filterMirror, this.config.filterMirror);
+    gl.uniform1f(uniforms.u_filterSketch, this.config.filterSketch);
+    gl.uniform1f(uniforms.u_filterCartoon, this.config.filterCartoon);
     gl.uniform2f(uniforms.u_resolution, width, height);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -318,6 +324,8 @@ export class WebGLPostProcessor {
     gl.uniform1f(this.uniforms.u_filterGlitch, this.config.filterGlitch);
     gl.uniform1f(this.uniforms.u_filterPixelate, this.config.filterPixelate);
     gl.uniform1f(this.uniforms.u_filterMirror, this.config.filterMirror);
+    gl.uniform1f(this.uniforms.u_filterSketch, this.config.filterSketch);
+    gl.uniform1f(this.uniforms.u_filterCartoon, this.config.filterCartoon);
     gl.uniform2f(this.uniforms.u_resolution, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
