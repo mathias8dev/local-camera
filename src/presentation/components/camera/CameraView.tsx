@@ -80,7 +80,7 @@ export function CameraView() {
   } = useCamera();
 
   const { isRecording, elapsed, startRecording, stopRecording, error: recError } =
-    useVideoRecorder(stream);
+    useVideoRecorder(stream, canvasRef);
 
   const [mode, setMode] = useState<CameraMode>("photo");
   const [videoResult, setVideoResult] = useState<VideoRecordingResult | null>(null);

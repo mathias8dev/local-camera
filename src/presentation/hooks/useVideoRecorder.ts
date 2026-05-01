@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   type VideoRecordingResult,
   pickMimeType,
@@ -9,7 +9,10 @@ import {
 
 export type { VideoRecordingResult };
 
-export function useVideoRecorder(stream: MediaStream | null) {
+export function useVideoRecorder(
+  stream: MediaStream | null,
+  canvasRef: React.RefObject<HTMLCanvasElement | null>,
+) {
   const [isRecording, setIsRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +25,7 @@ export function useVideoRecorder(stream: MediaStream | null) {
   const audioStreamRef = useRef<MediaStream | null>(null);
   const resolveStopRef = useRef<((result: VideoRecordingResult) => void) | null>(null);
   const maxDurationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const canvasStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -34,6 +38,9 @@ export function useVideoRecorder(stream: MediaStream | null) {
       }
       if (audioStreamRef.current) {
         audioStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
+      if (canvasStreamRef.current) {
+        canvasStreamRef.current.getTracks().forEach((t) => t.stop());
       }
     };
   }, []);
@@ -49,7 +56,7 @@ export function useVideoRecorder(stream: MediaStream | null) {
   }, []);
 
   const startRecording = useCallback(async () => {
-    if (!stream || isRecording) return;
+    if (!stream || !canvasRef.current || isRecording) return;
     setError(null);
 
     const mimeType = pickMimeType();
@@ -58,7 +65,9 @@ export function useVideoRecorder(stream: MediaStream | null) {
       return;
     }
 
-    const combinedStream = new MediaStream(stream.getVideoTracks());
+    const canvasStream = canvasRef.current.captureStream(30);
+    canvasStreamRef.current = canvasStream;
+    const combinedStream = new MediaStream(canvasStream.getVideoTracks());
 
     try {
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -101,14 +110,16 @@ export function useVideoRecorder(stream: MediaStream | null) {
         audioStreamRef.current.getTracks().forEach((t) => t.stop());
         audioStreamRef.current = null;
       }
+      if (canvasStreamRef.current) {
+        canvasStreamRef.current.getTracks().forEach((t) => t.stop());
+        canvasStreamRef.current = null;
+      }
 
       const blob = new Blob(chunksRef.current, { type: mimeType });
       const duration = (Date.now() - startTimeRef.current) / 1000;
 
-      const videoTrack = stream?.getVideoTracks()[0];
-      const settings = videoTrack?.getSettings();
-      const width = settings?.width ?? 0;
-      const height = settings?.height ?? 0;
+      const width = canvasRef.current?.width ?? 0;
+      const height = canvasRef.current?.height ?? 0;
 
       if (mountedRef.current) {
         setIsRecording(false);
@@ -136,7 +147,7 @@ export function useVideoRecorder(stream: MediaStream | null) {
         recorderRef.current.stop();
       }
     }, MAX_DURATION_SECONDS * 1000);
-  }, [stream, isRecording]);
+  }, [stream, canvasRef, isRecording]);
 
   const stopRecording = useCallback((): Promise<VideoRecordingResult> => {
     return new Promise((resolve, reject) => {
