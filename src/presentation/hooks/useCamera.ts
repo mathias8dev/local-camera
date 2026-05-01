@@ -146,6 +146,7 @@ export function useCamera() {
     "filterBrightness", "filterSaturation", "filterWarmth", "filterSepia",
     "filterVignette", "filterFisheye", "filterKaleidoscope", "filterGlitch",
     "filterPixelate", "filterMirror", "filterSketch", "filterCartoon",
+    "filterInk", "filterNeon", "filterEmboss", "filterHatching", "filterPointillism",
   ];
 
   const computeFilterValues = useCallback((filter: CameraFilter, intensity: number): Partial<Record<FilterKey, number>> => {

@@ -16,6 +16,11 @@ export interface PostProcessorConfig {
   filterMirror: number;
   filterSketch: number;
   filterCartoon: number;
+  filterInk: number;
+  filterNeon: number;
+  filterEmboss: number;
+  filterHatching: number;
+  filterPointillism: number;
 }
 
 export const DEFAULT_POST_PROCESSOR_CONFIG: PostProcessorConfig = {
@@ -36,4 +41,9 @@ export const DEFAULT_POST_PROCESSOR_CONFIG: PostProcessorConfig = {
   filterMirror: 0.0,
   filterSketch: 0.0,
   filterCartoon: 0.0,
+  filterInk: 0.0,
+  filterNeon: 0.0,
+  filterEmboss: 0.0,
+  filterHatching: 0.0,
+  filterPointillism: 0.0,
 };

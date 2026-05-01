@@ -29,6 +29,11 @@ uniform float u_filterPixelate;
 uniform float u_filterMirror;
 uniform float u_filterSketch;
 uniform float u_filterCartoon;
+uniform float u_filterInk;
+uniform float u_filterNeon;
+uniform float u_filterEmboss;
+uniform float u_filterHatching;
+uniform float u_filterPointillism;
 varying vec2 v_texCoord;
 
 #define PI 3.14159265359
@@ -132,8 +137,13 @@ void main() {
   float vig = 1.0 - dot(vigUV, vigUV) * u_filterVignette;
   color *= clamp(vig, 0.0, 1.0);
 
-  // Sketch & Cartoon (shared Sobel edge detection)
-  if (u_filterSketch > 0.0 || u_filterCartoon > 0.0) {
+  // Artistic effects (shared Sobel edge detection)
+  bool needEdge = u_filterSketch > 0.0 || u_filterCartoon > 0.0 ||
+                  u_filterInk > 0.0 || u_filterNeon > 0.0 || u_filterEmboss > 0.0;
+  float edge = 0.0;
+  float gx = 0.0;
+  float gy = 0.0;
+  if (needEdge) {
     vec3 lumW = vec3(0.2126, 0.7152, 0.0722);
     float lumT  = dot(top.rgb, lumW);
     float lumB  = dot(bottom.rgb, lumW);
@@ -143,23 +153,82 @@ void main() {
     float lumTR = dot(texture2D(u_texture, uv + vec2( u_texelSize.x,  u_texelSize.y)).rgb, lumW);
     float lumBL = dot(texture2D(u_texture, uv + vec2(-u_texelSize.x, -u_texelSize.y)).rgb, lumW);
     float lumBR = dot(texture2D(u_texture, uv + vec2( u_texelSize.x, -u_texelSize.y)).rgb, lumW);
-    float gx = -lumTL - 2.0 * lumL - lumBL + lumTR + 2.0 * lumR + lumBR;
-    float gy = -lumTL - 2.0 * lumT - lumTR + lumBL + 2.0 * lumB + lumBR;
-    float edge = sqrt(gx * gx + gy * gy);
+    gx = -lumTL - 2.0 * lumL - lumBL + lumTR + 2.0 * lumR + lumBR;
+    gy = -lumTL - 2.0 * lumT - lumTR + lumBL + 2.0 * lumB + lumBR;
+    edge = sqrt(gx * gx + gy * gy);
+  }
 
-    if (u_filterSketch > 0.0) {
-      float ink = clamp(edge * 4.0, 0.0, 1.0);
-      vec3 sketch = vec3(1.0 - ink);
-      color = mix(color, sketch, u_filterSketch);
-    }
+  // Pencil sketch: dark lines on white
+  if (u_filterSketch > 0.0) {
+    float ink = clamp(edge * 4.0, 0.0, 1.0);
+    vec3 sketch = vec3(1.0 - ink);
+    color = mix(color, sketch, u_filterSketch);
+  }
 
-    if (u_filterCartoon > 0.0) {
-      float levels = 6.0;
-      vec3 quantized = floor(color * levels + 0.5) / levels;
-      float outline = clamp(edge * 5.0, 0.0, 1.0);
-      vec3 cartoon = quantized * (1.0 - outline * 0.85);
-      color = mix(color, cartoon, u_filterCartoon);
-    }
+  // Cartoon: quantized colors + edge outlines
+  if (u_filterCartoon > 0.0) {
+    float levels = 6.0;
+    vec3 quantized = floor(color * levels + 0.5) / levels;
+    float outline = clamp(edge * 5.0, 0.0, 1.0);
+    vec3 cartoon = quantized * (1.0 - outline * 0.85);
+    color = mix(color, cartoon, u_filterCartoon);
+  }
+
+  // Ink: XDoG-style crisp binary thresholding
+  if (u_filterInk > 0.0) {
+    float phi = 10.0;
+    float epsilon = 0.08;
+    float sharpEdge = smoothstep(epsilon - 0.03, epsilon + 0.03, edge);
+    float inkVal = 1.0 - sharpEdge;
+    color = mix(color, vec3(inkVal), u_filterInk);
+  }
+
+  // Neon: colored glowing edges on dark background
+  if (u_filterNeon > 0.0) {
+    float glow = clamp(edge * 3.0, 0.0, 1.0);
+    vec3 edgeColor = color * glow * 2.5;
+    vec3 neon = mix(vec3(0.0), edgeColor, glow);
+    color = mix(color, neon, u_filterNeon);
+  }
+
+  // Emboss: directional 3D relief
+  if (u_filterEmboss > 0.0) {
+    float l = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    float relief = l + gx * u_filterEmboss * 2.0;
+    color = mix(color, vec3(clamp(relief + 0.5, 0.0, 1.0)), u_filterEmboss);
+  }
+
+  // Cross-hatching: luminance-driven diagonal line patterns
+  if (u_filterHatching > 0.0) {
+    float l = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    vec2 fc = gl_FragCoord.xy;
+    float spacing = 6.0 * u_resolution.y / 480.0;
+    float lineW = 0.4;
+    float h1 = step(lineW, fract((fc.x + fc.y) / spacing));
+    float h2 = step(lineW, fract((fc.x - fc.y) / spacing));
+    float h3 = step(lineW, fract(fc.x / spacing));
+    float h4 = step(lineW, fract(fc.y / spacing));
+    float pattern = 1.0;
+    if (l < 0.8) pattern *= h1;
+    if (l < 0.6) pattern *= h2;
+    if (l < 0.4) pattern *= h3;
+    if (l < 0.2) pattern *= h4;
+    vec3 hatched = vec3(pattern);
+    color = mix(color, hatched, u_filterHatching);
+  }
+
+  // Pointillism: luminance-sized dots on a grid
+  if (u_filterPointillism > 0.0) {
+    float dotSpacing = mix(4.0, 12.0, u_filterPointillism) * u_resolution.y / 480.0;
+    vec2 fc = gl_FragCoord.xy;
+    vec2 cell = floor(fc / dotSpacing) * dotSpacing + dotSpacing * 0.5;
+    float dist = length(fc - cell);
+    vec3 cellColor = texture2D(u_texture, cell / u_resolution).rgb;
+    float l = dot(cellColor, vec3(0.2126, 0.7152, 0.0722));
+    float radius = dotSpacing * 0.5 * (1.0 - l);
+    float dotMask = 1.0 - smoothstep(radius - 0.8, radius + 0.8, dist);
+    vec3 pointillism = cellColor * dotMask + vec3(1.0) * (1.0 - dotMask);
+    color = mix(color, pointillism, u_filterPointillism);
   }
 
   gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);

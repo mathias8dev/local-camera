@@ -18,6 +18,11 @@ export interface CameraFilter {
       | "filterMirror"
       | "filterSketch"
       | "filterCartoon"
+      | "filterInk"
+      | "filterNeon"
+      | "filterEmboss"
+      | "filterHatching"
+      | "filterPointillism"
     >
   >;
 }
@@ -44,6 +49,11 @@ export const FILTER_PARAM_META: Record<FilterKey, FilterParamMeta> = {
   filterMirror:        { label: "Miroir",        min: 0.0, max: 1.0, step: 0.05 },
   filterSketch:        { label: "Crayon",        min: 0.0, max: 1.0, step: 0.05 },
   filterCartoon:       { label: "Cartoon",       min: 0.0, max: 1.0, step: 0.05 },
+  filterInk:           { label: "Encre",         min: 0.0, max: 1.0, step: 0.05 },
+  filterNeon:          { label: "Néon",          min: 0.0, max: 1.0, step: 0.05 },
+  filterEmboss:        { label: "Relief",        min: 0.0, max: 1.0, step: 0.05 },
+  filterHatching:      { label: "Hachures",      min: 0.0, max: 1.0, step: 0.05 },
+  filterPointillism:   { label: "Pointillisme",  min: 0.0, max: 1.0, step: 0.05 },
 };
 
 export const cameraFilters: CameraFilter[] = [
@@ -117,5 +127,30 @@ export const cameraFilters: CameraFilter[] = [
     id: "cartoon",
     label: "Cartoon",
     values: { filterCartoon: 1.0, filterSaturation: 1.4 },
+  },
+  {
+    id: "ink",
+    label: "Encre",
+    values: { filterInk: 1.0 },
+  },
+  {
+    id: "neon",
+    label: "Néon",
+    values: { filterNeon: 1.0, filterSaturation: 1.3 },
+  },
+  {
+    id: "emboss",
+    label: "Relief",
+    values: { filterEmboss: 0.8 },
+  },
+  {
+    id: "hatching",
+    label: "Hachures",
+    values: { filterHatching: 1.0 },
+  },
+  {
+    id: "pointillism",
+    label: "Pointillisme",
+    values: { filterPointillism: 0.5 },
   },
 ];

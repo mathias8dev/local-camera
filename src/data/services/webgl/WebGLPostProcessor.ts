@@ -63,6 +63,11 @@ function getUniforms(
     "u_filterMirror",
     "u_filterSketch",
     "u_filterCartoon",
+    "u_filterInk",
+    "u_filterNeon",
+    "u_filterEmboss",
+    "u_filterHatching",
+    "u_filterPointillism",
     "u_resolution",
   ];
   const locs: UniformLocations = {};
@@ -90,6 +95,11 @@ const PASSTHROUGH: PostProcessorConfig = {
   filterMirror: 0,
   filterSketch: 0,
   filterCartoon: 0,
+  filterInk: 0,
+  filterNeon: 0,
+  filterEmboss: 0,
+  filterHatching: 0,
+  filterPointillism: 0,
 };
 
 const QUAD = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
@@ -214,6 +224,11 @@ export class WebGLPostProcessor {
     gl.uniform1f(uniforms.u_filterMirror, this.config.filterMirror);
     gl.uniform1f(uniforms.u_filterSketch, this.config.filterSketch);
     gl.uniform1f(uniforms.u_filterCartoon, this.config.filterCartoon);
+    gl.uniform1f(uniforms.u_filterInk, this.config.filterInk);
+    gl.uniform1f(uniforms.u_filterNeon, this.config.filterNeon);
+    gl.uniform1f(uniforms.u_filterEmboss, this.config.filterEmboss);
+    gl.uniform1f(uniforms.u_filterHatching, this.config.filterHatching);
+    gl.uniform1f(uniforms.u_filterPointillism, this.config.filterPointillism);
     gl.uniform2f(uniforms.u_resolution, width, height);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -326,6 +341,11 @@ export class WebGLPostProcessor {
     gl.uniform1f(this.uniforms.u_filterMirror, this.config.filterMirror);
     gl.uniform1f(this.uniforms.u_filterSketch, this.config.filterSketch);
     gl.uniform1f(this.uniforms.u_filterCartoon, this.config.filterCartoon);
+    gl.uniform1f(this.uniforms.u_filterInk, this.config.filterInk);
+    gl.uniform1f(this.uniforms.u_filterNeon, this.config.filterNeon);
+    gl.uniform1f(this.uniforms.u_filterEmboss, this.config.filterEmboss);
+    gl.uniform1f(this.uniforms.u_filterHatching, this.config.filterHatching);
+    gl.uniform1f(this.uniforms.u_filterPointillism, this.config.filterPointillism);
     gl.uniform2f(this.uniforms.u_resolution, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
