@@ -4,6 +4,18 @@ import {
 } from "@/domain/entities/PostProcessorConfig";
 import { VERTEX_SHADER, ENHANCE_FRAGMENT_SHADER } from "./shaders";
 
+export interface FaceDistortionData {
+  slimAmount: number;
+  slimLeftCheek: [number, number];
+  slimRightCheek: [number, number];
+  faceCenter: [number, number];
+  faceWidth: number;
+  bigEyesScale: number;
+  bigEyesLeft: [number, number];
+  bigEyesRight: [number, number];
+  bigEyesRadius: number;
+}
+
 type UniformLocations = Record<string, WebGLUniformLocation | null>;
 
 function compileShader(
@@ -69,6 +81,15 @@ function getUniforms(
     "u_filterHatching",
     "u_filterPointillism",
     "u_resolution",
+    "u_faceSlimAmount",
+    "u_faceSlimLeftCheek",
+    "u_faceSlimRightCheek",
+    "u_faceCenter",
+    "u_faceWidth",
+    "u_faceBigEyesScale",
+    "u_faceBigEyesLeft",
+    "u_faceBigEyesRight",
+    "u_faceBigEyesRadius",
   ];
   const locs: UniformLocations = {};
   for (const name of names) {
@@ -115,6 +136,7 @@ export class WebGLPostProcessor {
   private animFrameId = 0;
   private contextLost = false;
   private config: PostProcessorConfig = { ...DEFAULT_POST_PROCESSOR_CONFIG };
+  private faceDistortion: FaceDistortionData | null = null;
   onFrameDrawn: (() => void) | null = null;
 
   attach(canvas: HTMLCanvasElement): void {
@@ -166,6 +188,10 @@ export class WebGLPostProcessor {
 
   getConfig(): PostProcessorConfig {
     return { ...this.config };
+  }
+
+  setFaceDistortion(data: FaceDistortionData | null): void {
+    this.faceDistortion = data;
   }
 
   async processBlob(
@@ -348,6 +374,24 @@ export class WebGLPostProcessor {
     gl.uniform1f(this.uniforms.u_filterHatching, this.config.filterHatching);
     gl.uniform1f(this.uniforms.u_filterPointillism, this.config.filterPointillism);
     gl.uniform2f(this.uniforms.u_resolution, gl.drawingBufferWidth, gl.drawingBufferHeight);
+
+    const fd = this.faceDistortion;
+    if (fd) {
+      gl.uniform1f(this.uniforms.u_faceSlimAmount, fd.slimAmount);
+      gl.uniform2f(this.uniforms.u_faceSlimLeftCheek, fd.slimLeftCheek[0], fd.slimLeftCheek[1]);
+      gl.uniform2f(this.uniforms.u_faceSlimRightCheek, fd.slimRightCheek[0], fd.slimRightCheek[1]);
+      gl.uniform2f(this.uniforms.u_faceCenter, fd.faceCenter[0], fd.faceCenter[1]);
+      gl.uniform1f(this.uniforms.u_faceWidth, fd.faceWidth);
+      gl.uniform1f(this.uniforms.u_faceBigEyesScale, fd.bigEyesScale);
+      gl.uniform2f(this.uniforms.u_faceBigEyesLeft, fd.bigEyesLeft[0], fd.bigEyesLeft[1]);
+      gl.uniform2f(this.uniforms.u_faceBigEyesRight, fd.bigEyesRight[0], fd.bigEyesRight[1]);
+      gl.uniform1f(this.uniforms.u_faceBigEyesRadius, fd.bigEyesRadius);
+    } else {
+      gl.uniform1f(this.uniforms.u_faceSlimAmount, 0.0);
+      gl.uniform1f(this.uniforms.u_faceWidth, 0.0);
+      gl.uniform1f(this.uniforms.u_faceBigEyesScale, 1.0);
+      gl.uniform1f(this.uniforms.u_faceBigEyesRadius, 0.0);
+    }
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     this.onFrameDrawn?.();

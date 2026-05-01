@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   type VideoRecordingResult,
   pickMimeType,
-  MAX_DURATION_SECONDS,
 } from "./recording-utils";
 
 export type { VideoRecordingResult };
@@ -24,7 +23,6 @@ export function useVideoRecorder(
   const mountedRef = useRef(true);
   const audioStreamRef = useRef<MediaStream | null>(null);
   const resolveStopRef = useRef<((result: VideoRecordingResult) => void) | null>(null);
-  const maxDurationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canvasStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
@@ -32,7 +30,6 @@ export function useVideoRecorder(
     return () => {
       mountedRef.current = false;
       if (intervalRef.current) clearInterval(intervalRef.current);
-      if (maxDurationTimerRef.current) clearTimeout(maxDurationTimerRef.current);
       if (recorderRef.current?.state === "recording") {
         recorderRef.current.stop();
       }
@@ -102,10 +99,6 @@ export function useVideoRecorder(
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      if (maxDurationTimerRef.current) {
-        clearTimeout(maxDurationTimerRef.current);
-        maxDurationTimerRef.current = null;
-      }
       if (audioStreamRef.current) {
         audioStreamRef.current.getTracks().forEach((t) => t.stop());
         audioStreamRef.current = null;
@@ -142,11 +135,6 @@ export function useVideoRecorder(
       }
     }, 1000);
 
-    maxDurationTimerRef.current = setTimeout(() => {
-      if (recorderRef.current?.state === "recording") {
-        recorderRef.current.stop();
-      }
-    }, MAX_DURATION_SECONDS * 1000);
   }, [stream, canvasRef, isRecording]);
 
   const stopRecording = useCallback((): Promise<VideoRecordingResult> => {

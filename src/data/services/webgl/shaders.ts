@@ -34,6 +34,15 @@ uniform float u_filterNeon;
 uniform float u_filterEmboss;
 uniform float u_filterHatching;
 uniform float u_filterPointillism;
+uniform float u_faceSlimAmount;
+uniform vec2 u_faceSlimLeftCheek;
+uniform vec2 u_faceSlimRightCheek;
+uniform vec2 u_faceCenter;
+uniform float u_faceWidth;
+uniform float u_faceBigEyesScale;
+uniform vec2 u_faceBigEyesLeft;
+uniform vec2 u_faceBigEyesRight;
+uniform float u_faceBigEyesRadius;
 varying vec2 v_texCoord;
 
 #define PI 3.14159265359
@@ -73,6 +82,61 @@ vec2 applyDistortions(vec2 coord) {
     float cellSize = mix(1.0, 40.0, u_filterPixelate);
     vec2 cells = u_resolution / cellSize;
     uv = floor(uv * cells) / cells + 0.5 / cells;
+  }
+
+  // Face slim: push cheek regions toward face center
+  if (u_faceSlimAmount > 0.0 && u_faceWidth > 0.0) {
+    float slimRadius = u_faceWidth * 0.55;
+    float aspect = u_resolution.x / u_resolution.y;
+
+    vec2 dL = uv - u_faceSlimLeftCheek;
+    vec2 dLA = vec2(dL.x, dL.y * aspect);
+    float distL = length(dLA);
+    if (distL < slimRadius) {
+      float t = 1.0 - distL / slimRadius;
+      t = t * t;
+      vec2 inward = u_faceCenter - u_faceSlimLeftCheek;
+      float il = length(vec2(inward.x, inward.y * aspect));
+      if (il > 0.001) inward /= il;
+      uv -= inward * t * u_faceSlimAmount * slimRadius * 0.35;
+    }
+
+    vec2 dR = uv - u_faceSlimRightCheek;
+    vec2 dRA = vec2(dR.x, dR.y * aspect);
+    float distR = length(dRA);
+    if (distR < slimRadius) {
+      float t = 1.0 - distR / slimRadius;
+      t = t * t;
+      vec2 inward = u_faceCenter - u_faceSlimRightCheek;
+      float il = length(vec2(inward.x, inward.y * aspect));
+      if (il > 0.001) inward /= il;
+      uv -= inward * t * u_faceSlimAmount * slimRadius * 0.35;
+    }
+  }
+
+  // Big eyes: magnify eye regions
+  if (u_faceBigEyesScale > 1.0 && u_faceBigEyesRadius > 0.0) {
+    float aspect = u_resolution.x / u_resolution.y;
+
+    vec2 dL = uv - u_faceBigEyesLeft;
+    vec2 dLA = vec2(dL.x, dL.y * aspect);
+    float distL = length(dLA);
+    if (distL < u_faceBigEyesRadius) {
+      float t = distL / u_faceBigEyesRadius;
+      float s = t * t * (3.0 - 2.0 * t);
+      float scale = mix(u_faceBigEyesScale, 1.0, s);
+      uv = u_faceBigEyesLeft + dL / scale;
+    }
+
+    vec2 dR = uv - u_faceBigEyesRight;
+    vec2 dRA = vec2(dR.x, dR.y * aspect);
+    float distR = length(dRA);
+    if (distR < u_faceBigEyesRadius) {
+      float t = distR / u_faceBigEyesRadius;
+      float s = t * t * (3.0 - 2.0 * t);
+      float scale = mix(u_faceBigEyesScale, 1.0, s);
+      uv = u_faceBigEyesRight + dR / scale;
+    }
   }
 
   return uv;

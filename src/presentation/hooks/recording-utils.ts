@@ -19,5 +19,3 @@ export function pickMimeType(): string {
   }
   return "";
 }
-
-export const MAX_DURATION_SECONDS = 600;

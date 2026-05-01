@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
-import type { WebGLPostProcessor } from "@/data/services/webgl/WebGLPostProcessor";
+import type { WebGLPostProcessor, FaceDistortionData } from "@/data/services/webgl/WebGLPostProcessor";
 import { FaceDetectionService } from "@/data/services/face/FaceDetectionService";
 import { FaceEffectRenderer } from "@/data/services/face/FaceEffectRenderer";
 import type { FaceEffect, FaceLandmarks, DistortionEffect } from "@/domain/entities/FaceEffect";
+import { LANDMARK } from "@/domain/entities/FaceEffect";
 import { faceEffects } from "@/data/operations/faceEffects";
 
 const DETECTION_INTERVAL_MS = 33;
@@ -38,11 +39,48 @@ export function useFaceEffects(
       mountedRef.current = false;
       if (processorRef) {
         processorRef.onFrameDrawn = null;
+        processorRef.setFaceDistortion(null);
       }
       serviceRef.current?.dispose();
       rendererRef.current?.dispose();
     };
   }, [postProcessorRef]);
+
+  const buildDistortionData = useCallback(
+    (face: FaceLandmarks, effect: DistortionEffect, params: Record<string, number>): FaceDistortionData => {
+      const fn = effect.distortionFn;
+      if (fn === "slimFace") {
+        return {
+          slimAmount: params.amount ?? 0.5,
+          slimLeftCheek: [face.landmarks[LANDMARK.LEFT_CHEEK].x, face.landmarks[LANDMARK.LEFT_CHEEK].y],
+          slimRightCheek: [face.landmarks[LANDMARK.RIGHT_CHEEK].x, face.landmarks[LANDMARK.RIGHT_CHEEK].y],
+          faceCenter: [face.landmarks[LANDMARK.NOSE_BRIDGE].x, face.landmarks[LANDMARK.NOSE_BRIDGE].y],
+          faceWidth: face.faceWidth,
+          bigEyesScale: 1.0,
+          bigEyesLeft: [0, 0],
+          bigEyesRight: [0, 0],
+          bigEyesRadius: 0,
+        };
+      }
+      const lx = (face.landmarks[LANDMARK.LEFT_EYE_INNER].x + face.landmarks[LANDMARK.LEFT_EYE_OUTER].x) / 2;
+      const ly = (face.landmarks[LANDMARK.LEFT_EYE_TOP].y + face.landmarks[LANDMARK.LEFT_EYE_BOTTOM].y) / 2;
+      const rx = (face.landmarks[LANDMARK.RIGHT_EYE_INNER].x + face.landmarks[LANDMARK.RIGHT_EYE_OUTER].x) / 2;
+      const ry = (face.landmarks[LANDMARK.RIGHT_EYE_TOP].y + face.landmarks[LANDMARK.RIGHT_EYE_BOTTOM].y) / 2;
+      const eyeW = Math.abs(face.landmarks[LANDMARK.LEFT_EYE_OUTER].x - face.landmarks[LANDMARK.LEFT_EYE_INNER].x);
+      return {
+        slimAmount: 0,
+        slimLeftCheek: [0, 0],
+        slimRightCheek: [0, 0],
+        faceCenter: [0, 0],
+        faceWidth: 0,
+        bigEyesScale: params.scale ?? 1.8,
+        bigEyesLeft: [lx, ly],
+        bigEyesRight: [rx, ry],
+        bigEyesRadius: eyeW * 1.2,
+      };
+    },
+    [],
+  );
 
   const onFrameDrawn = useCallback(() => {
     const effect = activeEffectRef.current;
@@ -74,27 +112,34 @@ export function useFaceEffects(
         serviceRef.current?.detect(video, now) ?? null;
     }
 
-    const overlayCtx = overlay.getContext("2d");
-    if (!overlayCtx) return;
+    const face = lastLandmarksRef.current;
 
-    overlayCtx.clearRect(0, 0, w, h);
-    if (lastLandmarksRef.current && rendererRef.current) {
-      rendererRef.current.render(
-        overlayCtx,
-        lastLandmarksRef.current,
-        effect,
-        w,
-        h,
-        video,
-        paramsRef.current,
-      );
+    if (effect.type === "distortion") {
+      if (face && postProcessorRef.current) {
+        postProcessorRef.current.setFaceDistortion(
+          buildDistortionData(face, effect as DistortionEffect, paramsRef.current),
+        );
+      } else {
+        postProcessorRef.current?.setFaceDistortion(null);
+      }
+      const overlayCtx = overlay.getContext("2d");
+      if (overlayCtx) overlayCtx.clearRect(0, 0, w, h);
+    } else {
+      const overlayCtx = overlay.getContext("2d");
+      if (!overlayCtx) return;
+      overlayCtx.clearRect(0, 0, w, h);
+      if (face && rendererRef.current) {
+        rendererRef.current.render(overlayCtx, face, effect, w, h, video, paramsRef.current);
+      }
     }
 
     const compositeCtx = composite.getContext("2d");
     if (!compositeCtx) return;
     compositeCtx.drawImage(webgl, 0, 0);
-    compositeCtx.drawImage(overlay, 0, 0);
-  }, [videoRef, webglCanvasRef]);
+    if (effect.type === "overlay") {
+      compositeCtx.drawImage(overlay, 0, 0);
+    }
+  }, [videoRef, webglCanvasRef, postProcessorRef, buildDistortionData]);
 
   const registerCallback = useCallback(() => {
     if (postProcessorRef.current) {
@@ -115,6 +160,7 @@ export function useFaceEffects(
 
       if (effect.id === "none") {
         lastLandmarksRef.current = null;
+        postProcessorRef.current?.setFaceDistortion(null);
         const overlay = overlayCanvasRef.current;
         if (overlay) {
           const ctx = overlay.getContext("2d");
@@ -140,8 +186,11 @@ export function useFaceEffects(
         }
       }
 
-      if (effect.type === "overlay" && rendererRef.current) {
-        await rendererRef.current.preloadAssets(effect);
+      if (effect.type === "overlay") {
+        postProcessorRef.current?.setFaceDistortion(null);
+        if (rendererRef.current) {
+          await rendererRef.current.preloadAssets(effect);
+        }
       }
 
       if (effect.type === "distortion") {
@@ -158,7 +207,7 @@ export function useFaceEffects(
 
       registerCallback();
     },
-    [isModelLoaded, registerCallback, unregisterCallback],
+    [isModelLoaded, registerCallback, unregisterCallback, postProcessorRef],
   );
 
   const setFaceEffectParam = useCallback((key: string, value: number) => {

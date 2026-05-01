@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type VideoRecordingResult,
   pickMimeType,
-  MAX_DURATION_SECONDS,
 } from "./recording-utils";
 
 export function useScreenRecorder() {
@@ -28,14 +27,12 @@ export function useScreenRecorder() {
   const mountedRef = useRef(true);
   const displayStreamRef = useRef<MediaStream | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
-  const maxDurationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       if (intervalRef.current) clearInterval(intervalRef.current);
-      if (maxDurationTimerRef.current) clearTimeout(maxDurationTimerRef.current);
       if (recorderRef.current?.state === "recording" || recorderRef.current?.state === "paused") {
         recorderRef.current.stop();
       }
@@ -48,10 +45,6 @@ export function useScreenRecorder() {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
-    }
-    if (maxDurationTimerRef.current) {
-      clearTimeout(maxDurationTimerRef.current);
-      maxDurationTimerRef.current = null;
     }
   }, []);
 
@@ -173,11 +166,6 @@ export function useScreenRecorder() {
       }
     }, 1000);
 
-    maxDurationTimerRef.current = setTimeout(() => {
-      if (recorderRef.current?.state === "recording" || recorderRef.current?.state === "paused") {
-        recorderRef.current.stop();
-      }
-    }, MAX_DURATION_SECONDS * 1000);
   }, [isRecording, isSupported, micEnabled, clearTimers, stopStreams]);
 
   const stopRecording = useCallback(() => {
