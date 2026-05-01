@@ -54,6 +54,9 @@ export function CameraView() {
     retake,
     toggleMirror,
     toggleEnhance,
+    activeFilter,
+    cameraFilters,
+    selectFilter,
     switchCamera,
     showGrid,
     toggleGrid,
@@ -400,9 +403,28 @@ export function CameraView() {
               </div>
             </div>
 
+            {/* Filter strip */}
+            {!isRecording && (
+              <div className="mt-4 -mx-6 flex gap-2 overflow-x-auto px-6 scrollbar-none">
+                {cameraFilters.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => selectFilter(f)}
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium backdrop-blur-sm transition-colors ${
+                      activeFilter.id === f.id
+                        ? "bg-white text-black"
+                        : "bg-white/15 text-white/80 active:bg-white/25"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Mode toggle */}
             {!isRecording && (
-              <div className="mx-auto mt-4 flex items-center justify-center gap-6">
+              <div className="mx-auto mt-3 flex items-center justify-center gap-6">
                 <button
                   onClick={() => setMode("photo")}
                   className={`text-sm font-semibold transition-colors ${

@@ -51,6 +51,17 @@ function getUniforms(
     "u_contrastStrength",
     "u_exposure",
     "u_toneMapStrength",
+    "u_filterBrightness",
+    "u_filterSaturation",
+    "u_filterWarmth",
+    "u_filterSepia",
+    "u_filterVignette",
+    "u_filterFisheye",
+    "u_filterKaleidoscope",
+    "u_filterGlitch",
+    "u_filterPixelate",
+    "u_filterMirror",
+    "u_resolution",
   ];
   const locs: UniformLocations = {};
   for (const name of names) {
@@ -65,6 +76,16 @@ const PASSTHROUGH: PostProcessorConfig = {
   contrastStrength: 0,
   exposure: 1,
   toneMapStrength: 0,
+  filterBrightness: 1,
+  filterSaturation: 1,
+  filterWarmth: 0,
+  filterSepia: 0,
+  filterVignette: 0,
+  filterFisheye: 0,
+  filterKaleidoscope: 0,
+  filterGlitch: 0,
+  filterPixelate: 0,
+  filterMirror: 0,
 };
 
 const QUAD = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
@@ -169,14 +190,25 @@ export class WebGLPostProcessor {
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
-    const params = this.config.enabled ? this.config : PASSTHROUGH;
+    const enhance = this.config.enabled ? this.config : PASSTHROUGH;
     gl.uniform1i(uniforms.u_texture, 0);
     gl.uniform1f(uniforms.u_flipY, -1.0);
     gl.uniform2f(uniforms.u_texelSize, 1 / width, 1 / height);
-    gl.uniform1f(uniforms.u_sharpenStrength, params.sharpenStrength);
-    gl.uniform1f(uniforms.u_contrastStrength, params.contrastStrength);
-    gl.uniform1f(uniforms.u_exposure, params.exposure);
-    gl.uniform1f(uniforms.u_toneMapStrength, params.toneMapStrength);
+    gl.uniform1f(uniforms.u_sharpenStrength, enhance.sharpenStrength);
+    gl.uniform1f(uniforms.u_contrastStrength, enhance.contrastStrength);
+    gl.uniform1f(uniforms.u_exposure, enhance.exposure);
+    gl.uniform1f(uniforms.u_toneMapStrength, enhance.toneMapStrength);
+    gl.uniform1f(uniforms.u_filterBrightness, this.config.filterBrightness);
+    gl.uniform1f(uniforms.u_filterSaturation, this.config.filterSaturation);
+    gl.uniform1f(uniforms.u_filterWarmth, this.config.filterWarmth);
+    gl.uniform1f(uniforms.u_filterSepia, this.config.filterSepia);
+    gl.uniform1f(uniforms.u_filterVignette, this.config.filterVignette);
+    gl.uniform1f(uniforms.u_filterFisheye, this.config.filterFisheye);
+    gl.uniform1f(uniforms.u_filterKaleidoscope, this.config.filterKaleidoscope);
+    gl.uniform1f(uniforms.u_filterGlitch, this.config.filterGlitch);
+    gl.uniform1f(uniforms.u_filterPixelate, this.config.filterPixelate);
+    gl.uniform1f(uniforms.u_filterMirror, this.config.filterMirror);
+    gl.uniform2f(uniforms.u_resolution, width, height);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -264,7 +296,7 @@ export class WebGLPostProcessor {
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
-    const params = this.config.enabled ? this.config : PASSTHROUGH;
+    const enhance = this.config.enabled ? this.config : PASSTHROUGH;
     gl.uniform1i(this.uniforms.u_texture, 0);
     gl.uniform1f(this.uniforms.u_flipY, 1.0);
     gl.uniform2f(
@@ -272,10 +304,21 @@ export class WebGLPostProcessor {
       1 / gl.drawingBufferWidth,
       1 / gl.drawingBufferHeight,
     );
-    gl.uniform1f(this.uniforms.u_sharpenStrength, params.sharpenStrength);
-    gl.uniform1f(this.uniforms.u_contrastStrength, params.contrastStrength);
-    gl.uniform1f(this.uniforms.u_exposure, params.exposure);
-    gl.uniform1f(this.uniforms.u_toneMapStrength, params.toneMapStrength);
+    gl.uniform1f(this.uniforms.u_sharpenStrength, enhance.sharpenStrength);
+    gl.uniform1f(this.uniforms.u_contrastStrength, enhance.contrastStrength);
+    gl.uniform1f(this.uniforms.u_exposure, enhance.exposure);
+    gl.uniform1f(this.uniforms.u_toneMapStrength, enhance.toneMapStrength);
+    gl.uniform1f(this.uniforms.u_filterBrightness, this.config.filterBrightness);
+    gl.uniform1f(this.uniforms.u_filterSaturation, this.config.filterSaturation);
+    gl.uniform1f(this.uniforms.u_filterWarmth, this.config.filterWarmth);
+    gl.uniform1f(this.uniforms.u_filterSepia, this.config.filterSepia);
+    gl.uniform1f(this.uniforms.u_filterVignette, this.config.filterVignette);
+    gl.uniform1f(this.uniforms.u_filterFisheye, this.config.filterFisheye);
+    gl.uniform1f(this.uniforms.u_filterKaleidoscope, this.config.filterKaleidoscope);
+    gl.uniform1f(this.uniforms.u_filterGlitch, this.config.filterGlitch);
+    gl.uniform1f(this.uniforms.u_filterPixelate, this.config.filterPixelate);
+    gl.uniform1f(this.uniforms.u_filterMirror, this.config.filterMirror);
+    gl.uniform2f(this.uniforms.u_resolution, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
