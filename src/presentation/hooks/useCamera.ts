@@ -411,6 +411,7 @@ export function useCamera() {
   return {
     videoRef,
     canvasRef,
+    postProcessorRef,
     stream,
     isReady,
     previewUrl: captured?.previewUrl ?? null,

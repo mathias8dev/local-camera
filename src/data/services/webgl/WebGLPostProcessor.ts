@@ -115,6 +115,7 @@ export class WebGLPostProcessor {
   private animFrameId = 0;
   private contextLost = false;
   private config: PostProcessorConfig = { ...DEFAULT_POST_PROCESSOR_CONFIG };
+  onFrameDrawn: (() => void) | null = null;
 
   attach(canvas: HTMLCanvasElement): void {
     this.canvas = canvas;
@@ -349,6 +350,7 @@ export class WebGLPostProcessor {
     gl.uniform2f(this.uniforms.u_resolution, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    this.onFrameDrawn?.();
   }
 
   private onContextLost = (e: Event) => {

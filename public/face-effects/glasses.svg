@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 100" width="256" height="100">
+  <!-- Left lens -->
+  <rect x="16" y="18" width="90" height="60" rx="12" ry="12" fill="#1A1A2E" stroke="#222" stroke-width="4" />
+  <!-- Left lens gradient/shine -->
+  <rect x="16" y="18" width="90" height="60" rx="12" ry="12" fill="url(#lensGrad)" />
+  <!-- Right lens -->
+  <rect x="150" y="18" width="90" height="60" rx="12" ry="12" fill="#1A1A2E" stroke="#222" stroke-width="4" />
+  <!-- Right lens gradient/shine -->
+  <rect x="150" y="18" width="90" height="60" rx="12" ry="12" fill="url(#lensGrad)" />
+  <!-- Bridge -->
+  <path d="M106 42 Q128 32, 150 42" stroke="#222" stroke-width="5" fill="none" stroke-linecap="round" />
+  <!-- Left arm hint -->
+  <path d="M16 38 L2 34" stroke="#222" stroke-width="5" stroke-linecap="round" />
+  <!-- Right arm hint -->
+  <path d="M240 38 L254 34" stroke="#222" stroke-width="5" stroke-linecap="round" />
+  <!-- Frame top accent -->
+  <path d="M18 22 L104 22" stroke="#333" stroke-width="2" opacity="0.5" />
+  <path d="M152 22 L238 22" stroke="#333" stroke-width="2" opacity="0.5" />
+  <defs>
+    <linearGradient id="lensGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4A4A6A" stop-opacity="0.4" />
+      <stop offset="40%" stop-color="transparent" stop-opacity="0" />
+      <stop offset="100%" stop-color="#1A1A2E" stop-opacity="0.1" />
+    </linearGradient>
+  </defs>
+</svg>

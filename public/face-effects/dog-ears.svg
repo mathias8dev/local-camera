@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 180" width="256" height="180">
+  <!-- Left ear -->
+  <g transform="translate(48, 10)">
+    <ellipse cx="30" cy="70" rx="38" ry="72" transform="rotate(-15, 30, 70)" fill="#8B6914" />
+    <ellipse cx="30" cy="70" rx="26" ry="58" transform="rotate(-15, 30, 70)" fill="#C4983E" />
+    <ellipse cx="28" cy="85" rx="18" ry="40" transform="rotate(-15, 28, 85)" fill="#D4A84E" />
+  </g>
+  <!-- Right ear -->
+  <g transform="translate(152, 10)">
+    <ellipse cx="30" cy="70" rx="38" ry="72" transform="rotate(15, 30, 70)" fill="#8B6914" />
+    <ellipse cx="30" cy="70" rx="26" ry="58" transform="rotate(15, 30, 70)" fill="#C4983E" />
+    <ellipse cx="32" cy="85" rx="18" ry="40" transform="rotate(15, 32, 85)" fill="#D4A84E" />
+  </g>
+  <!-- Ear fold details - left -->
+  <path d="M52 40 Q60 65 55 100" stroke="#7A5A10" stroke-width="1.5" fill="none" opacity="0.4"/>
+  <!-- Ear fold details - right -->
+  <path d="M204 40 Q196 65 201 100" stroke="#7A5A10" stroke-width="1.5" fill="none" opacity="0.4"/>
+</svg>

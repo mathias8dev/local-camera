@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 100" width="80" height="100">
+  <!-- Tongue body -->
+  <path d="M20 0 C18 0, 8 20, 10 50 Q12 80, 40 95 Q68 80, 70 50 C72 20, 62 0, 60 0 Z" fill="#F28B9E" />
+  <!-- Tongue center line -->
+  <path d="M40 5 Q39 50, 40 85" stroke="#E06880" stroke-width="2.5" fill="none" stroke-linecap="round" />
+  <!-- Lighter highlight left -->
+  <path d="M25 10 C22 25, 22 50, 30 75" stroke="#F9B0BF" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5" />
+  <!-- Lighter highlight right -->
+  <path d="M55 10 C58 25, 58 50, 50 75" stroke="#F9B0BF" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.3" />
+  <!-- Saliva dots for fun -->
+  <circle cx="30" cy="88" r="2" fill="#F9C0CF" opacity="0.6" />
+  <circle cx="50" cy="90" r="1.5" fill="#F9C0CF" opacity="0.5" />
+</svg>

@@ -15,7 +15,9 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { useCamera } from "@/presentation/hooks/useCamera";
 import { useVideoRecorder, VideoRecordingResult } from "@/presentation/hooks/useVideoRecorder";
+import { useFaceEffects } from "@/presentation/hooks/useFaceEffects";
 import { FILTER_PARAM_META, type FilterKey } from "@/data/operations/cameraFilters";
+import type { DistortionEffect } from "@/domain/entities/FaceEffect";
 import { mediaRepository } from "@/data/instances";
 import { MediaItem } from "@/domain/entities/MediaItem";
 import { shareFile } from "@/data/services/WebShareService";
@@ -39,6 +41,7 @@ export function CameraView() {
   const {
     videoRef,
     canvasRef,
+    postProcessorRef,
     stream,
     isReady,
     previewUrl,
@@ -79,8 +82,22 @@ export function CameraView() {
     applyZoom,
   } = useCamera();
 
+  const {
+    overlayCanvasRef,
+    compositeCanvasRef,
+    activeFaceEffect,
+    faceEffects,
+    selectFaceEffect,
+    faceEffectParams,
+    setFaceEffectParam,
+    isModelLoading,
+  } = useFaceEffects(videoRef, canvasRef, postProcessorRef);
+
+  const hasFaceEffect = activeFaceEffect.id !== "none";
+  const recordingCanvasRef = hasFaceEffect ? compositeCanvasRef : canvasRef;
+
   const { isRecording, elapsed, startRecording, stopRecording, error: recError } =
-    useVideoRecorder(stream, canvasRef);
+    useVideoRecorder(stream, recordingCanvasRef);
 
   const [mode, setMode] = useState<CameraMode>("photo");
   const [videoResult, setVideoResult] = useState<VideoRecordingResult | null>(null);
@@ -124,16 +141,41 @@ export function CameraView() {
     pinchStartDistRef.current = null;
   }, []);
 
+  const captureFaceEffect = useCallback(async () => {
+    const canvas = compositeCanvasRef.current;
+    if (!canvas || canvas.width === 0) return;
+    const blob = await new Promise<Blob | null>((res) =>
+      canvas.toBlob((b) => res(b), "image/jpeg", 0.95),
+    );
+    if (!blob) return;
+    const photoId = crypto.randomUUID();
+    const name = `Photo ${new Date().toLocaleString("fr-FR")}`;
+    const photo: MediaItem = {
+      id: photoId,
+      name,
+      width: canvas.width,
+      height: canvas.height,
+      createdAt: new Date(),
+      type: "photo",
+      mimeType: "image/jpeg",
+    };
+    await mediaRepository.save(photo, blob);
+  }, [compositeCanvasRef]);
+
   const handleCapture = useCallback(async () => {
     if (mode === "photo") {
-      await capture();
+      if (hasFaceEffect) {
+        await captureFaceEffect();
+      } else {
+        await capture();
+      }
     } else if (isRecording) {
       const result = await stopRecording();
       setVideoResult(result);
     } else {
       await startRecording();
     }
-  }, [mode, isRecording, capture, startRecording, stopRecording]);
+  }, [mode, isRecording, capture, captureFaceEffect, hasFaceEffect, startRecording, stopRecording]);
 
   const handleSavePhoto = useCallback(
     (name: string, format: ExportFormat, quality?: number) => savePhoto(name, format, quality),
@@ -210,6 +252,16 @@ export function CameraView() {
         onTouchEnd={handleTouchEnd}
       />
 
+      <canvas
+        ref={overlayCanvasRef}
+        className={`pointer-events-none absolute inset-0 z-[2] h-full w-full object-cover ${isMirrored ? "scale-x-[-1]" : ""}`}
+      />
+
+      <canvas
+        ref={compositeCanvasRef}
+        className="pointer-events-none fixed -left-[9999px]"
+      />
+
       {showGrid && !previewUrl && !videoResult && (
         <div className="pointer-events-none absolute inset-0 z-2" aria-hidden>
           <div className="absolute inset-y-0 left-1/3 w-px bg-white/30" />
@@ -242,6 +294,14 @@ export function CameraView() {
           <span className="text-sm font-semibold text-white">
             {zoomLevel.toFixed(1)}×
           </span>
+        </div>
+      )}
+
+      {isModelLoading && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center">
+          <div className="rounded-xl bg-black/60 px-4 py-2 text-sm text-white backdrop-blur-sm">
+            Chargement du modèle...
+          </div>
         </div>
       )}
 
@@ -489,6 +549,72 @@ export function CameraView() {
                         </div>
                       );
                     })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Face effects strip */}
+            {!isRecording && (
+              <div className="mt-3 flex items-center gap-2">
+                <div className="-mx-6 flex flex-1 gap-2 overflow-x-auto px-6 scrollbar-none">
+                  {faceEffects.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => selectFaceEffect(f)}
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium backdrop-blur-sm transition-colors ${
+                        activeFaceEffect.id === f.id
+                          ? "bg-purple-500 text-white"
+                          : "bg-white/15 text-white/80 active:bg-white/25"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+                {activeFaceEffect.type === "distortion" && hasFaceEffect && (
+                  <button
+                    onClick={() => setShowFilterControls((prev) => !prev)}
+                    aria-label="Réglages de l'effet"
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full backdrop-blur-sm transition-colors active:scale-90 ${
+                      showFilterControls ? "bg-purple-500 text-white" : "bg-white/20 text-white"
+                    }`}
+                  >
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Face effect distortion params */}
+            <AnimatePresence>
+              {!isRecording && hasFaceEffect && activeFaceEffect.type === "distortion" && showFilterControls && (
+                <motion.div
+                  key="face-effect-controls"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-2 space-y-1.5">
+                    {(activeFaceEffect as DistortionEffect).params.map((p) => (
+                      <div key={p.key} className="flex items-center gap-3">
+                        <span className="w-20 shrink-0 text-[11px] text-white/60 text-right">{p.label}</span>
+                        <input
+                          type="range"
+                          min={p.min}
+                          max={p.max}
+                          step={p.step}
+                          value={faceEffectParams[p.key] ?? p.defaultValue}
+                          onChange={(e) => setFaceEffectParam(p.key, Number(e.target.value))}
+                          className="h-1 flex-1 appearance-none rounded-full bg-white/20 accent-white [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                        />
+                        <span className="w-8 text-[11px] text-white/60 tabular-nums">
+                          {(faceEffectParams[p.key] ?? p.defaultValue).toFixed(1)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </motion.div>
               )}

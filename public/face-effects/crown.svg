@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 150" width="256" height="150">
+  <defs>
+    <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD700" />
+      <stop offset="50%" stop-color="#DAA520" />
+      <stop offset="100%" stop-color="#B8860B" />
+    </linearGradient>
+    <linearGradient id="goldGrad2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF3A0" />
+      <stop offset="100%" stop-color="#FFD700" />
+    </linearGradient>
+  </defs>
+  <!-- Crown body -->
+  <path d="M20 140 L10 50 L55 85 L95 20 L128 75 L161 20 L201 85 L246 50 L236 140 Z"
+        fill="url(#goldGrad)" stroke="#B8860B" stroke-width="2" />
+  <!-- Crown base band -->
+  <rect x="20" y="120" width="216" height="22" rx="3" fill="url(#goldGrad2)" stroke="#B8860B" stroke-width="1.5" />
+  <!-- Band pattern -->
+  <circle cx="58" cy="131" r="6" fill="#C41E3A" stroke="#8B0000" stroke-width="1" />
+  <circle cx="128" cy="131" r="8" fill="#1E90FF" stroke="#00008B" stroke-width="1" />
+  <circle cx="198" cy="131" r="6" fill="#C41E3A" stroke="#8B0000" stroke-width="1" />
+  <!-- Small diamonds on band -->
+  <polygon points="88,131 93,126 98,131 93,136" fill="#50C878" stroke="#006400" stroke-width="0.8" />
+  <polygon points="158,131 163,126 168,131 163,136" fill="#50C878" stroke="#006400" stroke-width="0.8" />
+  <!-- Point tips - circles -->
+  <circle cx="95" cy="20" r="5" fill="#FFD700" stroke="#B8860B" stroke-width="1" />
+  <circle cx="128" cy="75" r="4" fill="#FFD700" stroke="#B8860B" stroke-width="1" />
+  <circle cx="161" cy="20" r="5" fill="#FFD700" stroke="#B8860B" stroke-width="1" />
+  <!-- Highlight lines -->
+  <path d="M40 100 L50 60" stroke="#FFF3A0" stroke-width="1.5" opacity="0.4" />
+  <path d="M216 100 L206 60" stroke="#FFF3A0" stroke-width="1.5" opacity="0.4" />
+</svg>
