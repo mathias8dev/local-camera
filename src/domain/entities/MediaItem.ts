@@ -16,4 +16,9 @@ export interface VideoMedia extends BaseMedia {
   duration: number;
 }
 
-export type MediaItem = PhotoMedia | VideoMedia;
+export interface ScreenRecordingMedia extends BaseMedia {
+  type: "screen";
+  duration: number;
+}
+
+export type MediaItem = PhotoMedia | VideoMedia | ScreenRecordingMedia;

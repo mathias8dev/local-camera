@@ -288,7 +288,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
           animate="center"
           transition={{ duration: 0.25, ease: "easeInOut" }}
         >
-          {currentPhoto.type === "video" ? (
+          {(currentPhoto.type === "video" || currentPhoto.type === "screen") ? (
             fullUrl ? (
               <video
                 controls
@@ -362,13 +362,13 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
         <p className="mt-0.5 text-xs text-zinc-500">
           {dateFormat.format(currentPhoto.createdAt)} &middot;{" "}
           {currentPhoto.width} &times; {currentPhoto.height}
-          {currentPhoto.type === "video" && (
+          {(currentPhoto.type === "video" || currentPhoto.type === "screen") && (
             <> &middot; {formatDuration(currentPhoto.duration)}</>
           )}
         </p>
 
         <div className="mt-4 flex items-center justify-center gap-3">
-          {currentPhoto.type !== "video" && (
+          {currentPhoto.type === "photo" && (
             <ActionButton label="Modifier" onClick={handleEdit}>
               <Pencil className="h-5 w-5" />
             </ActionButton>

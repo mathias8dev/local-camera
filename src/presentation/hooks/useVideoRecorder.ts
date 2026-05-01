@@ -1,30 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type VideoRecordingResult,
+  pickMimeType,
+  MAX_DURATION_SECONDS,
+} from "./recording-utils";
 
-export interface VideoRecordingResult {
-  blob: Blob;
-  duration: number;
-  width: number;
-  height: number;
-  mimeType: string;
-}
-
-const CODEC_CANDIDATES = [
-  "video/webm;codecs=vp9,opus",
-  "video/webm;codecs=vp8,opus",
-  "video/webm",
-  "video/mp4",
-];
-
-function pickMimeType(): string {
-  for (const candidate of CODEC_CANDIDATES) {
-    if (MediaRecorder.isTypeSupported(candidate)) return candidate;
-  }
-  return "";
-}
-
-const MAX_DURATION_SECONDS = 600;
+export type { VideoRecordingResult };
 
 export function useVideoRecorder(stream: MediaStream | null) {
   const [isRecording, setIsRecording] = useState(false);
@@ -41,6 +24,7 @@ export function useVideoRecorder(stream: MediaStream | null) {
   const maxDurationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       if (intervalRef.current) clearInterval(intervalRef.current);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Video } from "lucide-react";
+import { Check, Monitor, Video } from "lucide-react";
 import { MediaItem } from "@/domain/entities/MediaItem";
 
 function formatDuration(seconds: number): string {
@@ -68,10 +68,14 @@ export function GalleryCard({
         ) : (
           <div className="absolute inset-0 animate-pulse bg-zinc-800" />
         )}
-        {/* Video duration badge */}
-        {photo.type === "video" && imgLoaded && (
+        {/* Video / screen recording duration badge */}
+        {(photo.type === "video" || photo.type === "screen") && imgLoaded && (
           <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 backdrop-blur-sm">
-            <Video className="h-3 w-3 text-white" />
+            {photo.type === "screen" ? (
+              <Monitor className="h-3 w-3 text-white" />
+            ) : (
+              <Video className="h-3 w-3 text-white" />
+            )}
             <span className="text-[10px] font-medium text-white tabular-nums">
               {formatDuration(photo.duration)}
             </span>

@@ -4,6 +4,7 @@ import { useRef, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Camera,
+  Monitor,
   ImageOff,
   Search,
   ArrowUpDown,
@@ -251,6 +252,13 @@ export function GalleryView() {
                       Sélectionner
                     </button>
                   )}
+                  <button
+                    onClick={() => router.push("/screen-record")}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-800 active:bg-zinc-700 active:text-white"
+                    title="Enregistrement d'écran"
+                  >
+                    <Monitor className="h-4.5 w-4.5" />
+                  </button>
                   <button
                     onClick={() => router.push("/camera")}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-colors active:bg-zinc-300"

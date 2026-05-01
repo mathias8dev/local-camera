@@ -23,6 +23,15 @@ function toMediaItem(r: Record<string, unknown>): MediaItem {
       createdAt: new Date(r.createdAt as string),
     } as MediaItem;
   }
+  if (type === "screen") {
+    return {
+      ...r,
+      type: "screen",
+      mimeType,
+      duration: (r.duration as number) ?? 0,
+      createdAt: new Date(r.createdAt as string),
+    } as MediaItem;
+  }
   return {
     ...r,
     type: "photo",
@@ -37,7 +46,7 @@ export class IndexedDBMediaRepository implements MediaRepository {
   async save(item: MediaItem, data: Blob): Promise<void> {
     await this.fileStorage.save(item.id, data);
     const thumb =
-      item.type === "video"
+      item.type === "video" || item.type === "screen"
         ? await generateVideoThumbnail(data)
         : await generateThumbnail(data);
     await withTransaction(THUMB_STORE, "readwrite", (store) =>
