@@ -1,5 +1,5 @@
 import { IndexedDBFileStorage } from "@/data/storage/IndexedDBFileStorage";
-import { IndexedDBPhotoRepository } from "@/data/repositories/IndexedDBPhotoRepository";
+import { IndexedDBMediaRepository } from "@/data/repositories/IndexedDBMediaRepository";
 
 export const fileStorage = new IndexedDBFileStorage();
-export const photoRepository = new IndexedDBPhotoRepository(fileStorage);
+export const mediaRepository = new IndexedDBMediaRepository(fileStorage);

@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fileStorage, photoRepository } from "@/data/instances";
+import { fileStorage, mediaRepository } from "@/data/instances";
 import { OperationValues } from "@/domain/entities/EditorOperation";
-import { Photo } from "@/domain/entities/Photo";
+import { MediaItem } from "@/domain/entities/MediaItem";
 import { allOperations, defaultValues } from "@/data/operations/registry";
 import { renderImage, exportCanvas, ExportFormat } from "@/data/services/ImageRenderer";
 import { Preset } from "@/data/operations/presets";
@@ -400,15 +400,18 @@ export function useEditor(photoId: string | null) {
       const blob = await exportCanvas(composite, format, quality);
       composite.width = 0;
       composite.height = 0;
-      const photo: Photo = {
+      const photo: MediaItem = {
         id: crypto.randomUUID(),
         name,
         width: savedW,
         height: savedH,
         createdAt: new Date(),
+        type: "photo",
+        mimeType: format,
       };
-      await photoRepository.save(photo, blob);
+      await mediaRepository.save(photo, blob);
       if (photoId) await fileStorage.delete(photoId);
+
       if (intermediateFileIdRef.current) {
         await fileStorage.delete(intermediateFileIdRef.current);
         intermediateFileIdRef.current = null;

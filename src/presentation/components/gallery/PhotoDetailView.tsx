@@ -12,7 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Photo } from "@/domain/entities/Photo";
+import { MediaItem } from "@/domain/entities/MediaItem";
 import { ConfirmDialog } from "@/presentation/components/ui/ConfirmDialog";
 import { ActionButton } from "@/presentation/components/ui/ActionButton";
 import { Spinner } from "@/presentation/components/ui/Spinner";
@@ -23,8 +23,14 @@ const dateFormat = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
 });
 
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 interface PhotoDetailViewProps {
-  photos: Photo[];
+  photos: MediaItem[];
   initialIndex: number;
   thumbnailUrls: Map<string, string>;
   getFullBlob: (id: string) => Promise<Blob | null>;
@@ -196,33 +202,47 @@ export function PhotoDetailView({
             exit="exit"
             transition={{ duration: 0.25, ease: "easeInOut" }}
           >
-            {/* Thumbnail (always visible as base) */}
-            {thumbnailUrl && (
-              <img
-                src={thumbnailUrl}
-                alt={currentPhoto.name}
-                className={`absolute max-h-full max-w-full object-contain select-none transition-opacity duration-500 ${
-                  isFullLoaded ? "opacity-0" : "opacity-100"
-                }`}
-                draggable={false}
-              />
+            {currentPhoto.type === "video" ? (
+              fullUrl ? (
+                <video
+                  controls
+                  playsInline
+                  preload="auto"
+                  src={fullUrl}
+                  poster={thumbnailUrl}
+                  className="absolute max-h-full max-w-full object-contain select-none"
+                />
+              ) : (
+                <Spinner />
+              )
+            ) : (
+              <>
+                {thumbnailUrl && (
+                  <img
+                    src={thumbnailUrl}
+                    alt={currentPhoto.name}
+                    className={`absolute max-h-full max-w-full object-contain select-none transition-opacity duration-500 ${
+                      isFullLoaded ? "opacity-0" : "opacity-100"
+                    }`}
+                    draggable={false}
+                  />
+                )}
+                {fullUrl && (
+                  <img
+                    src={fullUrl}
+                    alt={currentPhoto.name}
+                    className={`absolute max-h-full max-w-full object-contain select-none transition-opacity duration-500 ${
+                      isFullLoaded ? "opacity-100" : "opacity-0"
+                    }`}
+                    draggable={false}
+                    onLoad={() =>
+                      setFullLoaded((prev) => new Set(prev).add(currentPhoto.id))
+                    }
+                  />
+                )}
+                {!thumbnailUrl && !fullUrl && <Spinner />}
+              </>
             )}
-            {/* Full-res (fades in over thumbnail) */}
-            {fullUrl && (
-              <img
-                src={fullUrl}
-                alt={currentPhoto.name}
-                className={`absolute max-h-full max-w-full object-contain select-none transition-opacity duration-500 ${
-                  isFullLoaded ? "opacity-100" : "opacity-0"
-                }`}
-                draggable={false}
-                onLoad={() =>
-                  setFullLoaded((prev) => new Set(prev).add(currentPhoto.id))
-                }
-              />
-            )}
-            {/* Loading spinner when no image at all */}
-            {!thumbnailUrl && !fullUrl && <Spinner />}
           </motion.div>
         </AnimatePresence>
 
@@ -258,15 +278,20 @@ export function PhotoDetailView({
         <p className="mt-0.5 text-xs text-zinc-500">
           {dateFormat.format(currentPhoto.createdAt)} &middot;{" "}
           {currentPhoto.width} &times; {currentPhoto.height}
+          {currentPhoto.type === "video" && (
+            <> &middot; {formatDuration(currentPhoto.duration)}</>
+          )}
         </p>
 
         <div className="mt-4 flex items-center justify-center gap-3">
-          <ActionButton
-            label="Modifier"
-            onClick={() => onEdit(currentPhoto.id)}
-          >
-            <Pencil className="h-5 w-5" />
-          </ActionButton>
+          {currentPhoto.type !== "video" && (
+            <ActionButton
+              label="Modifier"
+              onClick={() => onEdit(currentPhoto.id)}
+            >
+              <Pencil className="h-5 w-5" />
+            </ActionButton>
+          )}
           <ActionButton
             label="Partager"
             onClick={() => onShare(currentPhoto.id, currentPhoto.name)}

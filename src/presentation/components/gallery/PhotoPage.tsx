@@ -13,9 +13,9 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useImageColors } from "@/presentation/hooks/useImageColors";
-import { fileStorage, photoRepository } from "@/data/instances";
+import { fileStorage, mediaRepository } from "@/data/instances";
 import { shareFile, downloadBlob } from "@/data/services/WebShareService";
-import { Photo } from "@/domain/entities/Photo";
+import { MediaItem } from "@/domain/entities/MediaItem";
 import { ConfirmDialog } from "@/presentation/components/ui/ConfirmDialog";
 import { ActionButton } from "@/presentation/components/ui/ActionButton";
 import { Spinner } from "@/presentation/components/ui/Spinner";
@@ -26,13 +26,19 @@ const dateFormat = new Intl.DateTimeFormat("fr-FR", {
   year: "numeric",
 });
 
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 interface PhotoPageProps {
   photoId: string;
 }
 
 export function PhotoPage({ photoId }: PhotoPageProps) {
   const router = useRouter();
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photos, setPhotos] = useState<MediaItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -55,7 +61,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
   // Load all photos and find current
   useEffect(() => {
     (async () => {
-      const all = await photoRepository.getAll();
+      const all = await mediaRepository.getAll();
       const sorted = [...all].sort(
         (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
       );
@@ -68,7 +74,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
       const thumbs = new Map<string, string>();
       await Promise.all(
         sorted.map(async (photo) => {
-          const thumb = await photoRepository.getThumbnail(photo.id);
+          const thumb = await mediaRepository.getThumbnail(photo.id);
           if (thumb) {
             thumbs.set(photo.id, URL.createObjectURL(thumb));
           }
@@ -97,7 +103,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
     async (index: number) => {
       const photo = photos[index];
       if (!photo || fullUrlsRef.current.has(photo.id)) return;
-      const blob = await photoRepository.getImageBlob(photo.id);
+      const blob = await mediaRepository.getImageBlob(photo.id);
       if (blob) {
         const url = URL.createObjectURL(blob);
         fullUrlsRef.current.set(photo.id, url);
@@ -161,7 +167,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
 
   const handleEdit = async () => {
     if (!currentPhoto) return;
-    const blob = await photoRepository.getImageBlob(currentPhoto.id);
+    const blob = await mediaRepository.getImageBlob(currentPhoto.id);
     if (blob) {
       await fileStorage.save(`edit-${currentPhoto.id}`, blob);
       router.push(`/editor?photoId=edit-${currentPhoto.id}`);
@@ -170,20 +176,20 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
 
   const handleShare = async () => {
     if (!currentPhoto) return;
-    const blob = await photoRepository.getImageBlob(currentPhoto.id);
+    const blob = await mediaRepository.getImageBlob(currentPhoto.id);
     if (blob) await shareFile(blob, currentPhoto.name);
   };
 
   const handleDownload = async () => {
     if (!currentPhoto) return;
-    const blob = await photoRepository.getImageBlob(currentPhoto.id);
+    const blob = await mediaRepository.getImageBlob(currentPhoto.id);
     if (blob) downloadBlob(blob, currentPhoto.name);
   };
 
   const handleDelete = async () => {
     if (!currentPhoto) return;
     setConfirmDelete(false);
-    await photoRepository.delete(currentPhoto.id);
+    await mediaRepository.delete(currentPhoto.id);
 
     const url = fullUrlsRef.current.get(currentPhoto.id);
     if (url) URL.revokeObjectURL(url);
@@ -282,30 +288,47 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
           animate="center"
           transition={{ duration: 0.25, ease: "easeInOut" }}
         >
-          {thumbnailUrl && (
-            <img
-              src={thumbnailUrl}
-              alt={currentPhoto.name}
-              className={`absolute max-h-full max-w-full object-contain select-none transition-opacity duration-500 ${
-                isFullLoaded ? "opacity-0" : "opacity-100"
-              }`}
-              draggable={false}
-            />
+          {currentPhoto.type === "video" ? (
+            fullUrl ? (
+              <video
+                controls
+                playsInline
+                preload="auto"
+                src={fullUrl}
+                poster={thumbnailUrl}
+                className="absolute max-h-full max-w-full object-contain select-none"
+              />
+            ) : (
+              <Spinner />
+            )
+          ) : (
+            <>
+              {thumbnailUrl && (
+                <img
+                  src={thumbnailUrl}
+                  alt={currentPhoto.name}
+                  className={`absolute max-h-full max-w-full object-contain select-none transition-opacity duration-500 ${
+                    isFullLoaded ? "opacity-0" : "opacity-100"
+                  }`}
+                  draggable={false}
+                />
+              )}
+              {fullUrl && (
+                <img
+                  src={fullUrl}
+                  alt={currentPhoto.name}
+                  className={`absolute max-h-full max-w-full object-contain select-none transition-opacity duration-500 ${
+                    isFullLoaded ? "opacity-100" : "opacity-0"
+                  }`}
+                  draggable={false}
+                  onLoad={() =>
+                    setFullLoaded((prev) => new Set(prev).add(currentPhoto.id))
+                  }
+                />
+              )}
+              {!thumbnailUrl && !fullUrl && <Spinner />}
+            </>
           )}
-          {fullUrl && (
-            <img
-              src={fullUrl}
-              alt={currentPhoto.name}
-              className={`absolute max-h-full max-w-full object-contain select-none transition-opacity duration-500 ${
-                isFullLoaded ? "opacity-100" : "opacity-0"
-              }`}
-              draggable={false}
-              onLoad={() =>
-                setFullLoaded((prev) => new Set(prev).add(currentPhoto.id))
-              }
-            />
-          )}
-          {!thumbnailUrl && !fullUrl && <Spinner />}
         </motion.div>
 
         {currentIndex > 0 && (
@@ -339,12 +362,17 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
         <p className="mt-0.5 text-xs text-zinc-500">
           {dateFormat.format(currentPhoto.createdAt)} &middot;{" "}
           {currentPhoto.width} &times; {currentPhoto.height}
+          {currentPhoto.type === "video" && (
+            <> &middot; {formatDuration(currentPhoto.duration)}</>
+          )}
         </p>
 
         <div className="mt-4 flex items-center justify-center gap-3">
-          <ActionButton label="Modifier" onClick={handleEdit}>
-            <Pencil className="h-5 w-5" />
-          </ActionButton>
+          {currentPhoto.type !== "video" && (
+            <ActionButton label="Modifier" onClick={handleEdit}>
+              <Pencil className="h-5 w-5" />
+            </ActionButton>
+          )}
           <ActionButton label="Partager" onClick={handleShare}>
             <Share2 className="h-5 w-5" />
           </ActionButton>

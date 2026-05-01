@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
-import { Photo } from "@/domain/entities/Photo";
+import { Check, Video } from "lucide-react";
+import { MediaItem } from "@/domain/entities/MediaItem";
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
 
 const dateFormat = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -11,7 +17,7 @@ const dateFormat = new Intl.DateTimeFormat("fr-FR", {
 });
 
 interface GalleryCardProps {
-  photo: Photo;
+  photo: MediaItem;
   thumbnailUrl?: string;
   onOpen?: () => void;
   // Select mode
@@ -61,6 +67,15 @@ export function GalleryCard({
           />
         ) : (
           <div className="absolute inset-0 animate-pulse bg-zinc-800" />
+        )}
+        {/* Video duration badge */}
+        {photo.type === "video" && imgLoaded && (
+          <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 backdrop-blur-sm">
+            <Video className="h-3 w-3 text-white" />
+            <span className="text-[10px] font-medium text-white tabular-nums">
+              {formatDuration(photo.duration)}
+            </span>
+          </div>
         )}
       </div>
 

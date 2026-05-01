@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CameraService, FacingMode } from "@/data/services/CameraService";
 import { WebGLPostProcessor } from "@/data/services/webgl/WebGLPostProcessor";
-import { fileStorage, photoRepository } from "@/data/instances";
-import { Photo } from "@/domain/entities/Photo";
+import { fileStorage, mediaRepository } from "@/data/instances";
+import { MediaItem } from "@/domain/entities/MediaItem";
 import type { Resolution } from "@/domain/entities/Resolution";
 import { exportCanvas, ExportFormat } from "@/data/services/ImageRenderer";
 
@@ -40,6 +40,7 @@ export function useCamera() {
   const [enhanceEnabled, setEnhanceEnabled] = useState(true);
   const [resolutions, setResolutions] = useState<Resolution[]>([]);
   const [selectedResolution, setSelectedResolution] = useState<Resolution | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Feature 1: Grid overlay
@@ -70,15 +71,16 @@ export function useCamera() {
         setZoomLevel(1);
         setZoomCapabilities(null);
 
-        const stream = await cameraService.start(facingMode);
+        const s = await cameraService.start(facingMode);
         if (!cancelled && videoRef.current) {
-          videoRef.current.srcObject = stream;
+          videoRef.current.srcObject = s;
+          setStream(s);
           const res = cameraService.getResolutions();
           setResolutions(res);
           if (res.length > 0) setSelectedResolution(res[0]);
 
           // Check torch and zoom support
-          const track = stream.getVideoTracks()[0];
+          const track = s.getVideoTracks()[0];
           if (track) {
             const caps = track.getCapabilities() as MediaTrackCapabilities & {
               torch?: boolean;
@@ -108,6 +110,7 @@ export function useCamera() {
       cancelled = true;
       postProcessorRef.current?.stopPreview();
       cameraService.stop();
+      setStream(null);
     };
   }, [facingMode]);
 
@@ -171,8 +174,8 @@ export function useCamera() {
     const { blob, width, height } = result;
     const photoId = crypto.randomUUID();
     const name = `Photo ${new Date().toLocaleString("fr-FR")}`;
-    const photo: Photo = { id: photoId, name, width, height, createdAt: new Date() };
-    await photoRepository.save(photo, blob);
+    const photo: MediaItem = { id: photoId, name, width, height, createdAt: new Date(), type: "photo", mimeType: blob.type || "image/jpeg" };
+    await mediaRepository.save(photo, blob);
     if (!mountedRef.current) return;
     setCaptured({
       blob,
@@ -224,15 +227,17 @@ export function useCamera() {
       const blob = await exportCanvas(canvas, format, quality);
       canvas.width = 0;
       canvas.height = 0;
-      await photoRepository.delete(captured.photoId);
-      const photo: Photo = {
+      await mediaRepository.delete(captured.photoId);
+      const photo: MediaItem = {
         id: captured.photoId,
         name,
         width: captured.width,
         height: captured.height,
         createdAt: new Date(),
+        type: "photo",
+        mimeType: blob.type || "image/jpeg",
       };
-      await photoRepository.save(photo, blob);
+      await mediaRepository.save(photo, blob);
       return blob;
     },
     [captured],
@@ -248,7 +253,7 @@ export function useCamera() {
     if (!captured) return null;
     const id = crypto.randomUUID();
     await fileStorage.save(id, captured.blob);
-    await photoRepository.delete(captured.photoId);
+    await mediaRepository.delete(captured.photoId);
     URL.revokeObjectURL(captured.previewUrl);
     setCaptured(null);
     return id;
@@ -257,7 +262,7 @@ export function useCamera() {
   const retake = useCallback(async () => {
     if (!captured) return;
     URL.revokeObjectURL(captured.previewUrl);
-    await photoRepository.delete(captured.photoId);
+    await mediaRepository.delete(captured.photoId);
     setCaptured(null);
   }, [captured]);
 
@@ -277,7 +282,7 @@ export function useCamera() {
     setFacingMode((f) => (f === "user" ? "environment" : "user"));
     if (prev) {
       URL.revokeObjectURL(prev.previewUrl);
-      await photoRepository.delete(prev.photoId);
+      await mediaRepository.delete(prev.photoId);
     }
   }, [captured]);
 
@@ -346,6 +351,7 @@ export function useCamera() {
   return {
     videoRef,
     canvasRef,
+    stream,
     isReady,
     previewUrl: captured?.previewUrl ?? null,
     capturedBlob: captured?.blob ?? null,

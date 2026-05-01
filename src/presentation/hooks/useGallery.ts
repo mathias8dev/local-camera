@@ -1,8 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { photoRepository } from "@/data/instances";
-import { Photo } from "@/domain/entities/Photo";
+import { mediaRepository } from "@/data/instances";
+import { MediaItem } from "@/domain/entities/MediaItem";
+
+function extractVideoMeta(blob: Blob): Promise<{ width: number; height: number; duration: number }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const video = document.createElement("video");
+    video.muted = true;
+    video.preload = "auto";
+    video.onloadedmetadata = () => {
+      resolve({
+        width: video.videoWidth,
+        height: video.videoHeight,
+        duration: video.duration,
+      });
+      URL.revokeObjectURL(url);
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Failed to load video metadata"));
+    };
+    video.src = url;
+  });
+}
 
 export interface StorageEstimate {
   usedMB: number;
@@ -11,7 +33,7 @@ export interface StorageEstimate {
 }
 
 export function useGallery() {
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photos, setPhotos] = useState<MediaItem[]>([]);
   const [thumbnailUrls, setThumbnailUrls] = useState<Map<string, string>>(
     new Map(),
   );
@@ -38,13 +60,13 @@ export function useGallery() {
 
   const loadPhotos = useCallback(async () => {
     setLoading(true);
-    const all = await photoRepository.getAll();
+    const all = await mediaRepository.getAll();
     setPhotos(all);
 
     const urls = new Map<string, string>();
     await Promise.all(
       all.map(async (photo) => {
-        const thumb = await photoRepository.getThumbnail(photo.id);
+        const thumb = await mediaRepository.getThumbnail(photo.id);
         if (thumb) {
           urls.set(photo.id, URL.createObjectURL(thumb));
         }
@@ -67,7 +89,7 @@ export function useGallery() {
 
   const deletePhoto = useCallback(
     async (id: string) => {
-      await photoRepository.delete(id);
+      await mediaRepository.delete(id);
       const url = urlsRef.current.get(id);
       if (url) URL.revokeObjectURL(url);
       urlsRef.current.delete(id);
@@ -80,12 +102,12 @@ export function useGallery() {
 
   const getFullBlob = useCallback(
     async (id: string): Promise<Blob | null> => {
-      return photoRepository.getImageBlob(id);
+      return mediaRepository.getImageBlob(id);
     },
     [],
   );
 
-  const importPhotos = useCallback(
+  const importMedia = useCallback(
     async (
       files: FileList,
       onProgress?: (done: number, total: number) => void,
@@ -95,21 +117,38 @@ export function useGallery() {
       for (const file of fileArr) {
         try {
           const blob: Blob = file;
-          const bitmap = await createImageBitmap(blob);
-          const width = bitmap.width;
-          const height = bitmap.height;
-          bitmap.close();
-
           const id = `import-${Date.now()}-${Math.random().toString(36).slice(2)}`;
           const name = file.name.replace(/\.[^.]+$/, "");
-          const photo: Photo = {
-            id,
-            name,
-            width,
-            height,
-            createdAt: new Date(file.lastModified || Date.now()),
-          };
-          await photoRepository.save(photo, blob);
+
+          if (file.type.startsWith("video/")) {
+            const { width, height, duration } = await extractVideoMeta(blob);
+            const item: MediaItem = {
+              id,
+              name,
+              width,
+              height,
+              createdAt: new Date(file.lastModified || Date.now()),
+              type: "video",
+              duration,
+              mimeType: blob.type,
+            };
+            await mediaRepository.save(item, blob);
+          } else {
+            const bitmap = await createImageBitmap(blob);
+            const width = bitmap.width;
+            const height = bitmap.height;
+            bitmap.close();
+            const item: MediaItem = {
+              id,
+              name,
+              width,
+              height,
+              createdAt: new Date(file.lastModified || Date.now()),
+              type: "photo",
+              mimeType: blob.type || "image/jpeg",
+            };
+            await mediaRepository.save(item, blob);
+          }
         } catch {
           // skip unreadable files
         }
@@ -128,7 +167,7 @@ export function useGallery() {
     storageEstimate,
     deletePhoto,
     getFullBlob,
-    importPhotos,
+    importMedia,
     refresh: loadPhotos,
   };
 }

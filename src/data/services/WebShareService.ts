@@ -6,9 +6,11 @@ export function canShare(): boolean {
   );
 }
 
-function extForType(type: string): string {
+export function extForType(type: string): string {
   if (type === "image/png") return "png";
   if (type === "image/webp") return "webp";
+  if (type === "video/webm") return "webm";
+  if (type === "video/mp4") return "mp4";
   return "jpg";
 }
 

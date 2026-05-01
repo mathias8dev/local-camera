@@ -18,11 +18,11 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useGallery } from "@/presentation/hooks/useGallery";
-import { downloadBlob, canShare } from "@/data/services/WebShareService";
+import { downloadBlob, canShare, extForType } from "@/data/services/WebShareService";
 import { GalleryCard } from "./GalleryCard";
 import { ConfirmDialog } from "@/presentation/components/ui/ConfirmDialog";
 import { Spinner } from "@/presentation/components/ui/Spinner";
-import { Photo } from "@/domain/entities/Photo";
+import { MediaItem } from "@/domain/entities/MediaItem";
 
 type SortKey = "newest" | "oldest" | "name-az" | "name-za";
 
@@ -42,7 +42,7 @@ export function GalleryView() {
     storageEstimate,
     deletePhoto,
     getFullBlob,
-    importPhotos,
+    importMedia,
   } = useGallery();
 
   // Multi-select
@@ -66,7 +66,7 @@ export function GalleryView() {
   const [storageExpanded, setStorageExpanded] = useState(false);
 
   // Filtered + sorted
-  const displayedPhotos = useMemo<Photo[]>(() => {
+  const displayedPhotos = useMemo<MediaItem[]>(() => {
     let result = photos;
     if (query.trim()) {
       const q = query.trim().toLowerCase();
@@ -132,14 +132,14 @@ export function GalleryView() {
 
   const handleBatchShare = async () => {
     const selectedPhotos = displayedPhotos.filter((p) => selectedIds.has(p.id));
-    const loaded: { photo: Photo; blob: Blob }[] = [];
+    const loaded: { photo: MediaItem; blob: Blob }[] = [];
     for (const photo of selectedPhotos) {
       const blob = await getFullBlob(photo.id);
       if (blob) loaded.push({ photo, blob });
     }
     if (loaded.length === 0) return;
     const files = loaded.map(
-      ({ photo, blob }) => new File([blob], `${photo.name}.jpg`, { type: blob.type }),
+      ({ photo, blob }) => new File([blob], `${photo.name}.${extForType(blob.type)}`, { type: blob.type }),
     );
     if (canShare() && navigator.canShare({ files })) {
       try {
@@ -171,7 +171,7 @@ export function GalleryView() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setImportProgress({ done: 0, total: files.length });
-    await importPhotos(files, (done, total) =>
+    await importMedia(files, (done, total) =>
       setImportProgress({ done, total }),
     );
     setImportProgress(null);
@@ -550,7 +550,7 @@ export function GalleryView() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,video/*"
         multiple
         className="hidden"
         onChange={handleImportChange}
