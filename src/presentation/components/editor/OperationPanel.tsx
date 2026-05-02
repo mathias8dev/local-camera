@@ -1,4 +1,3 @@
-"use client";
 
 import { OperationGroup, OperationValues, isDefault } from "@/domain/entities/EditorOperation";
 import { ParamControl } from "./ParamControl";

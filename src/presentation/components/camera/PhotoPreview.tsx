@@ -1,4 +1,3 @@
-"use client";
 
 import { useState } from "react";
 import { RotateCcw, Pencil, Share2, Download } from "lucide-react";

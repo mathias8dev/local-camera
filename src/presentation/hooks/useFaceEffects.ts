@@ -1,4 +1,3 @@
-"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
@@ -32,6 +31,7 @@ export function useFaceEffects(
   const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     serviceRef.current = new FaceDetectionService();
     rendererRef.current = new FaceEffectRenderer();
     const processorRef = postProcessorRef.current;

@@ -1,4 +1,3 @@
-"use client";
 
 import { ComponentType } from "react";
 import { OperationGroup } from "@/domain/entities/EditorOperation";

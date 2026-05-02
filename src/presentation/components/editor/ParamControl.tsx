@@ -1,4 +1,3 @@
-"use client";
 
 import { ParamDef } from "@/domain/entities/EditorOperation";
 import { Button } from "@/presentation/components/ui/Button";

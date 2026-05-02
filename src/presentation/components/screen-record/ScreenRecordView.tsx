@@ -1,7 +1,6 @@
-"use client";
 
 import { useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { Monitor, Mic, MicOff, Images, Pause, Play, Square } from "lucide-react";
 import { useScreenRecorder } from "@/presentation/hooks/useScreenRecorder";
 import { VideoPreview } from "@/presentation/components/camera/VideoPreview";
@@ -15,7 +14,7 @@ function formatElapsed(seconds: number): string {
 }
 
 export function ScreenRecordView() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const {
     isSupported,
     isRecording,
@@ -51,8 +50,8 @@ export function ScreenRecordView() {
 
   const handleDone = useCallback(() => {
     clearResult();
-    router.push("/gallery");
-  }, [clearResult, router]);
+    navigate("/gallery");
+  }, [clearResult, navigate]);
 
   if (result) {
     return (
@@ -73,7 +72,7 @@ export function ScreenRecordView() {
           L&apos;enregistrement d&apos;écran n&apos;est pas supporté par ce navigateur.
         </p>
         <button
-          onClick={() => router.push("/gallery")}
+          onClick={() => navigate("/gallery")}
           className="mt-4 rounded-full border-2 border-white px-6 py-3 text-sm font-medium text-white transition-colors active:bg-white/10"
         >
           Retour à la galerie
@@ -155,7 +154,7 @@ export function ScreenRecordView() {
         <div className="mx-auto flex max-w-xs items-center justify-between">
           {!isRecording ? (
             <button
-              onClick={() => router.push("/gallery")}
+              onClick={() => navigate("/gallery")}
               aria-label="Galerie"
               className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors active:scale-90"
             >

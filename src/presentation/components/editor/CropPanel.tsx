@@ -1,4 +1,3 @@
-"use client";
 
 import { RotateCcw, RotateCw, Check, X } from "lucide-react";
 import { Button } from "@/presentation/components/ui/Button";

@@ -1,7 +1,6 @@
-"use client";
 
 import { useRef, useState, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import {
   Camera,
   Monitor,
@@ -35,7 +34,7 @@ const SORT_LABELS: Record<SortKey, string> = {
 };
 
 export function GalleryView() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const {
     photos,
     thumbnailUrls,
@@ -90,9 +89,9 @@ export function GalleryView() {
 
   const openPhoto = useCallback(
     (id: string) => {
-      router.push(`/gallery/${id}`);
+      navigate(`/gallery/${id}`);
     },
-    [router],
+    [navigate],
   );
 
   // Select mode
@@ -253,14 +252,14 @@ export function GalleryView() {
                     </button>
                   )}
                   <button
-                    onClick={() => router.push("/screen-record")}
+                    onClick={() => navigate("/screen-record")}
                     className="flex h-9 w-9 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-800 active:bg-zinc-700 active:text-white"
                     title="Enregistrement d'écran"
                   >
                     <Monitor className="h-4.5 w-4.5" />
                   </button>
                   <button
-                    onClick={() => router.push("/camera")}
+                    onClick={() => navigate("/camera")}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-colors active:bg-zinc-300"
                   >
                     <Camera className="h-4.5 w-4.5" />
@@ -386,7 +385,7 @@ export function GalleryView() {
               Importer
             </button>
             <button
-              onClick={() => router.push("/camera")}
+              onClick={() => navigate("/camera")}
               className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition-colors active:bg-zinc-300"
             >
               Prendre une photo

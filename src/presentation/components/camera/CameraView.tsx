@@ -1,7 +1,6 @@
-"use client";
 
 import { useRef, useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import {
   FlipHorizontal2,
   Images,
@@ -37,7 +36,7 @@ function formatElapsed(seconds: number): string {
 }
 
 export function CameraView() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const {
     videoRef,
     canvasRef,
@@ -202,17 +201,17 @@ export function CameraView() {
 
   const handlePhotoDone = useCallback(() => {
     dismissPreview();
-    router.push("/gallery");
-  }, [dismissPreview, router]);
+    navigate("/gallery");
+  }, [dismissPreview, navigate]);
 
   const handleVideoDone = useCallback(() => {
     setVideoResult(null);
-    router.push("/gallery");
-  }, [router]);
+    navigate("/gallery");
+  }, [navigate]);
 
   const handleEdit = async () => {
     const id = await sendToEditor();
-    if (id) router.push(`/editor?photoId=${id}`);
+    if (id) navigate(`/editor?photoId=${id}`);
   };
 
   const handleShare = async () => {
@@ -442,7 +441,7 @@ export function CameraView() {
               <div className="flex flex-1 justify-start">
                 {!isRecording && (
                   <button
-                    onClick={() => router.push("/gallery")}
+                    onClick={() => navigate("/gallery")}
                     aria-label="Galerie"
                     className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors active:scale-90"
                   >

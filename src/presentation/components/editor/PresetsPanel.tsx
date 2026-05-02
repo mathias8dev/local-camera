@@ -1,4 +1,3 @@
-"use client";
 
 import { presets, Preset } from "@/data/operations/presets";
 import { Button } from "@/presentation/components/ui/Button";

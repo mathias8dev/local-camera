@@ -1,4 +1,3 @@
-"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CameraService, FacingMode } from "@/data/services/CameraService";
@@ -136,6 +135,7 @@ export function useCamera() {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);

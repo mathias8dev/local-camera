@@ -2,12 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-@AGENTS.md
-
 ## Commands
 
-- `npm run dev` — Start dev server (port 3000)
-- `npm run build` — Production build
+- `npm run dev` — Start Vite dev server (port 5173)
+- `npm run build` — Production build → `dist/`
+- `npm run preview` — Preview production build
 - `npm run lint` — ESLint
 - `npx tsc --noEmit` — Type-check without emitting
 
@@ -15,8 +14,8 @@ No test framework is configured.
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion  
-All data is local — IndexedDB only, no server/API. PWA with service worker (`public/sw.js`).
+Vite 6 · React 19 · React Router 7 · TypeScript · Tailwind CSS 4 · Framer Motion  
+All data is local — IndexedDB only, no server/API. SPA with service worker (`public/sw.js`).
 
 ## Architecture
 
@@ -38,7 +37,7 @@ Clean Architecture with three layers:
 **`src/presentation/`** — React components and hooks.
 - `hooks/useCamera.ts` — Camera stream, capture flow, auto-save to gallery, features (grid, torch, timer, zoom). Exposes `stream` for video recording.
 - `hooks/useEditor.ts` — Undo/redo stacks (full `OperationValues` snapshots), crop pipeline (computeCrop → reloadSource → applyCrop), draw/text overlays, composite save. Tracks intermediate crop files via `intermediateFileIdRef` for cleanup.
-- `hooks/useVideoRecorder.ts` — `MediaRecorder` with codec negotiation, audio permission handling, auto-stop on visibility change, 10-min max duration.
+- `hooks/useVideoRecorder.ts` — `MediaRecorder` with codec negotiation, audio permission handling, auto-stop on visibility change.
 - `hooks/useGallery.ts` — Gallery list, thumbnail URL lifecycle, import (photo via `createImageBitmap`, video via `<video>` metadata extraction).
 
 ## Key patterns
@@ -50,10 +49,10 @@ Clean Architecture with three layers:
 
 ## Service worker
 
-`public/sw.js` — Cache name `local-camera-v2`.
-- Cache-first for `/_next/static/` (immutable hashed assets)
+`public/sw.js` — Cache name `local-camera-v3`.
+- SPA navigation handler: `request.mode === "navigate"` → serve cached `index.html`
+- Cache-first for `/assets/` (Vite hashed output)
 - Stale-while-revalidate for everything else
-- RSC requests skipped via `rsc` header and `_rsc` query param (App Router pattern — not `/_next/data/`)
 
 ## Language
 

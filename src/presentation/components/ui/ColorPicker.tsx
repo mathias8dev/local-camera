@@ -1,4 +1,3 @@
-"use client";
 
 const PRESET_COLORS = [
   "#ffffff", "#000000", "#ef4444", "#3b82f6",

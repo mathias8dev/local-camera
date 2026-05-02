@@ -1,4 +1,3 @@
-"use client";
 
 import { ExportFormat } from "@/data/services/ImageRenderer";
 import { Dialog } from "./Dialog";

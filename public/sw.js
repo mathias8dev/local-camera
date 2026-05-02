@@ -1,6 +1,6 @@
-const CACHE_NAME = "local-camera-v2";
+const CACHE_NAME = "local-camera-v3";
 
-const APP_SHELL = ["/", "/camera", "/gallery", "/editor"];
+const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -30,11 +30,18 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
-  // Never cache Next.js RSC requests.
-  if (request.headers.get("rsc") || url.searchParams.has("_rsc")) return;
+  // SPA navigation: serve index.html for all navigation requests
+  if (request.mode === "navigate") {
+    event.respondWith(
+      caches.match("/index.html").then(
+        (cached) => cached || fetch("/index.html"),
+      ),
+    );
+    return;
+  }
 
-  // Immutable hashed assets — cache-first.
-  if (url.pathname.startsWith("/_next/static/")) {
+  // Immutable hashed assets (Vite output) — cache-first
+  if (url.pathname.startsWith("/assets/")) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>
@@ -53,8 +60,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Everything else — stale-while-revalidate.
-  // Serve from cache immediately, fetch in background to update for next visit.
+  // Everything else — stale-while-revalidate
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) =>
       cache.match(request).then((cached) => {

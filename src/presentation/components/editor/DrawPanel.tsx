@@ -1,4 +1,3 @@
-"use client";
 
 import { Eraser, Trash2 } from "lucide-react";
 import { Button } from "@/presentation/components/ui/Button";

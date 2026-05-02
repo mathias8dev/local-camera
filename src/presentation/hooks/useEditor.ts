@@ -1,4 +1,3 @@
-"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fileStorage, mediaRepository } from "@/data/instances";
@@ -119,6 +118,7 @@ export function useEditor(photoId: string | null) {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       if (intermediateFileIdRef.current) {

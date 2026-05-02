@@ -1,4 +1,3 @@
-"use client";
 
 import { Plus, Trash2 } from "lucide-react";
 import { TextItem } from "@/domain/entities/Overlay";

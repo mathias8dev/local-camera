@@ -1,7 +1,6 @@
-"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -37,7 +36,7 @@ interface PhotoPageProps {
 }
 
 export function PhotoPage({ photoId }: PhotoPageProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [photos, setPhotos] = useState<MediaItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [loading, setLoading] = useState(true);
@@ -140,13 +139,13 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
   // Keyboard nav
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") router.push("/gallery");
+      if (e.key === "Escape") navigate("/gallery");
       if (e.key === "ArrowLeft") goToPrev();
       if (e.key === "ArrowRight") goToNext();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [router, goToPrev, goToNext]);
+  }, [navigate, goToPrev, goToNext]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -170,7 +169,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
     const blob = await mediaRepository.getImageBlob(currentPhoto.id);
     if (blob) {
       await fileStorage.save(`edit-${currentPhoto.id}`, blob);
-      router.push(`/editor?photoId=edit-${currentPhoto.id}`);
+      navigate(`/editor?photoId=edit-${currentPhoto.id}`);
     }
   };
 
@@ -200,7 +199,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
     thumbnailUrlsRef.current.delete(currentPhoto.id);
 
     if (photos.length <= 1) {
-      router.push("/gallery");
+      navigate("/gallery");
     } else {
       const newPhotos = photos.filter((p) => p.id !== currentPhoto.id);
       setPhotos(newPhotos);
@@ -221,7 +220,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
       <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-black text-white">
         <p className="text-lg text-zinc-400">Photo introuvable</p>
         <button
-          onClick={() => router.push("/gallery")}
+          onClick={() => navigate("/gallery")}
           className="rounded-full border border-zinc-700 px-5 py-3 text-sm font-medium text-zinc-300 transition-colors active:bg-zinc-800"
         >
           Retour à la galerie
@@ -260,7 +259,7 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
         transition={{ delay: 0.05, duration: 0.2 }}
       >
         <button
-          onClick={() => router.push("/gallery")}
+          onClick={() => navigate("/gallery")}
           className="flex items-center gap-1.5 rounded-full bg-zinc-900/80 px-3 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors active:bg-zinc-800"
         >
           <ArrowLeft className="h-4 w-4" />

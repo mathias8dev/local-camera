@@ -1,7 +1,6 @@
-"use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   Download,
@@ -72,8 +71,8 @@ const allTabs: TabEntry[] = [
 ];
 
 export function EditorView() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const photoId = searchParams.get("photoId");
 
   const {
@@ -204,7 +203,7 @@ export function EditorView() {
       const blob = await save(name.trim(), exportFormat, quality);
       if (blob) {
         downloadBlob(blob, name.trim());
-        router.push("/gallery");
+        navigate("/gallery");
       }
     } finally {
       setSaving(false);
@@ -226,7 +225,7 @@ export function EditorView() {
       <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-black text-white">
         <p className="text-lg">{error}</p>
         <button
-          onClick={() => router.push("/gallery")}
+          onClick={() => navigate("/gallery")}
           className="rounded-full border-2 border-white px-6 py-3 text-base font-medium transition-colors hover:bg-white/10"
         >
           Retour à la caméra
@@ -248,7 +247,7 @@ export function EditorView() {
         {/* Header */}
         <div className="relative z-20 flex items-center gap-2 px-[max(0.75rem,env(safe-area-inset-left))] pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 lg:px-4 lg:pb-3">
           <button
-            onClick={() => router.push("/gallery")}
+            onClick={() => navigate("/gallery")}
             className="flex items-center gap-1.5 rounded-full bg-zinc-900/80 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-zinc-800 active:bg-zinc-700"
           >
             <ArrowLeft className="h-4 w-4" />

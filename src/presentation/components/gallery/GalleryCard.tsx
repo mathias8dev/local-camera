@@ -1,4 +1,3 @@
-"use client";
 
 import { useState } from "react";
 import { Check, Monitor, Video } from "lucide-react";
