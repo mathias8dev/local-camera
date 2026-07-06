@@ -1,4 +1,4 @@
-const CACHE_NAME = "local-camera-v3";
+const CACHE_NAME = "local-camera-__BUILD_ID__";
 
 const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest"];
 
@@ -6,7 +6,9 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL))
+      .then((cache) =>
+        cache.addAll(APP_SHELL.map((url) => new Request(url, { cache: "reload" }))),
+      )
       .then(() => self.skipWaiting()),
   );
 });
@@ -30,12 +32,17 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
-  // SPA navigation: serve index.html for all navigation requests
+  // SPA navigation: always try the network first so a new deploy is picked
+  // up immediately; fall back to the cached shell only when offline.
   if (request.mode === "navigate") {
     event.respondWith(
-      caches.match("/index.html").then(
-        (cached) => cached || fetch("/index.html"),
-      ),
+      fetch("/index.html", { cache: "reload" })
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put("/index.html", clone));
+          return response;
+        })
+        .catch(() => caches.match("/index.html")),
     );
     return;
   }
