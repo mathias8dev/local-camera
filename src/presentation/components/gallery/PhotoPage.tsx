@@ -176,13 +176,13 @@ export function PhotoPage({ photoId }: PhotoPageProps) {
   const handleShare = async () => {
     if (!currentPhoto) return;
     const blob = await mediaRepository.getImageBlob(currentPhoto.id);
-    if (blob) await shareFile(blob, currentPhoto.name);
+    if (blob) await shareFile(blob, currentPhoto.name, currentPhoto.mimeType);
   };
 
   const handleDownload = async () => {
     if (!currentPhoto) return;
     const blob = await mediaRepository.getImageBlob(currentPhoto.id);
-    if (blob) downloadBlob(blob, currentPhoto.name);
+    if (blob) downloadBlob(blob, currentPhoto.name, currentPhoto.mimeType);
   };
 
   const handleDelete = async () => {

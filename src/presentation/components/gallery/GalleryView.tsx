@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useGallery } from "@/presentation/hooks/useGallery";
-import { downloadBlob, canShare, extForType } from "@/data/services/WebShareService";
+import { downloadBlob, canShare, extForType, normalizeMimeType } from "@/data/services/WebShareService";
 import { GalleryCard } from "./GalleryCard";
 import { ConfirmDialog } from "@/presentation/components/ui/ConfirmDialog";
 import { Spinner } from "@/presentation/components/ui/Spinner";
@@ -138,9 +138,10 @@ export function GalleryView() {
       if (blob) loaded.push({ photo, blob });
     }
     if (loaded.length === 0) return;
-    const files = loaded.map(
-      ({ photo, blob }) => new File([blob], `${photo.name}.${extForType(blob.type)}`, { type: blob.type }),
-    );
+    const files = loaded.map(({ photo, blob }) => {
+      const mimeType = normalizeMimeType(photo.mimeType || blob.type);
+      return new File([blob], `${photo.name}.${extForType(mimeType)}`, { type: mimeType });
+    });
     if (canShare() && navigator.canShare({ files })) {
       try {
         await navigator.share({ files });
@@ -150,7 +151,7 @@ export function GalleryView() {
       }
     }
     for (const { photo, blob } of loaded) {
-      downloadBlob(blob, photo.name);
+      downloadBlob(blob, photo.name, photo.mimeType);
     }
   };
 
@@ -158,7 +159,7 @@ export function GalleryView() {
     const selectedPhotos = displayedPhotos.filter((p) => selectedIds.has(p.id));
     for (const photo of selectedPhotos) {
       const blob = await getFullBlob(photo.id);
-      if (blob) downloadBlob(blob, photo.name);
+      if (blob) downloadBlob(blob, photo.name, photo.mimeType);
     }
   };
 

@@ -26,12 +26,17 @@ export function useScreenRecorder() {
   const mountedRef = useRef(true);
   const displayStreamRef = useRef<MediaStream | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
+  const mimeTypeRef = useRef("");
+  const stopFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const finalizedRef = useRef(false);
+  const dimensionsRef = useRef({ width: 0, height: 0 });
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       if (intervalRef.current) clearInterval(intervalRef.current);
+      if (stopFallbackRef.current) clearTimeout(stopFallbackRef.current);
       if (recorderRef.current?.state === "recording" || recorderRef.current?.state === "paused") {
         recorderRef.current.stop();
       }
@@ -47,6 +52,13 @@ export function useScreenRecorder() {
     }
   }, []);
 
+  const clearStopFallback = useCallback(() => {
+    if (stopFallbackRef.current) {
+      clearTimeout(stopFallbackRef.current);
+      stopFallbackRef.current = null;
+    }
+  }, []);
+
   const stopStreams = useCallback(() => {
     if (displayStreamRef.current) {
       displayStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -57,6 +69,34 @@ export function useScreenRecorder() {
       micStreamRef.current = null;
     }
   }, []);
+
+  const finalizeRecording = useCallback(() => {
+    if (finalizedRef.current) return;
+    finalizedRef.current = true;
+
+    clearTimers();
+    clearStopFallback();
+
+    const mimeType = mimeTypeRef.current;
+    const blob = new Blob(chunksRef.current, { type: mimeType });
+    const totalPaused = isPausedRef.current
+      ? pausedAccumRef.current + (Date.now() - pauseStartRef.current)
+      : pausedAccumRef.current;
+    const duration = (Date.now() - startTimeRef.current - totalPaused) / 1000;
+
+    const { width, height } = dimensionsRef.current;
+
+    stopStreams();
+    recorderRef.current = null;
+
+    if (mountedRef.current) {
+      setIsRecording(false);
+      setIsPaused(false);
+      isPausedRef.current = false;
+      setElapsed(0);
+      setResult({ blob, duration, width, height, mimeType });
+    }
+  }, [clearStopFallback, clearTimers, stopStreams]);
 
   const startRecording = useCallback(async () => {
     if (isRecording || !isSupported) return;
@@ -75,6 +115,11 @@ export function useScreenRecorder() {
       return;
     }
     displayStreamRef.current = displayStream;
+    const settings = displayStream.getVideoTracks()[0]?.getSettings();
+    dimensionsRef.current = {
+      width: settings?.width ?? 0,
+      height: settings?.height ?? 0,
+    };
 
     const mimeType = pickMimeType();
     if (!mimeType) {
@@ -82,6 +127,7 @@ export function useScreenRecorder() {
       if (mountedRef.current) setError("Aucun format vidéo supporté par ce navigateur.");
       return;
     }
+    mimeTypeRef.current = mimeType;
 
     const combinedStream = new MediaStream(displayStream.getTracks());
 
@@ -100,6 +146,7 @@ export function useScreenRecorder() {
     chunksRef.current = [];
     pausedAccumRef.current = 0;
     isPausedRef.current = false;
+    finalizedRef.current = false;
     const recorder = new MediaRecorder(combinedStream, { mimeType });
 
     recorder.ondataavailable = (e) => {
@@ -117,30 +164,7 @@ export function useScreenRecorder() {
       stopStreams();
     };
 
-    recorder.onstop = () => {
-      clearTimers();
-
-      const blob = new Blob(chunksRef.current, { type: mimeType });
-      const totalPaused = isPausedRef.current
-        ? pausedAccumRef.current + (Date.now() - pauseStartRef.current)
-        : pausedAccumRef.current;
-      const duration = (Date.now() - startTimeRef.current - totalPaused) / 1000;
-
-      const videoTrack = displayStreamRef.current?.getVideoTracks()[0];
-      const settings = videoTrack?.getSettings();
-      const width = settings?.width ?? 0;
-      const height = settings?.height ?? 0;
-
-      stopStreams();
-
-      if (mountedRef.current) {
-        setIsRecording(false);
-        setIsPaused(false);
-        isPausedRef.current = false;
-        setElapsed(0);
-        setResult({ blob, duration, width, height, mimeType });
-      }
-    };
+    recorder.onstop = finalizeRecording;
 
     const videoTrack = displayStream.getVideoTracks()[0];
     if (videoTrack) {
@@ -165,13 +189,42 @@ export function useScreenRecorder() {
       }
     }, 1000);
 
-  }, [isRecording, isSupported, micEnabled, clearTimers, stopStreams]);
+  }, [isRecording, isSupported, micEnabled, clearTimers, finalizeRecording, stopStreams]);
 
   const stopRecording = useCallback(() => {
     const recorder = recorderRef.current;
-    if (!recorder || (recorder.state !== "recording" && recorder.state !== "paused")) return;
-    recorder.stop();
-  }, []);
+    if (!recorder) {
+      if (isRecording) finalizeRecording();
+      return;
+    }
+    if (recorder.state !== "recording" && recorder.state !== "paused") return;
+
+    if (recorder.state === "paused") {
+      pausedAccumRef.current += Date.now() - pauseStartRef.current;
+      isPausedRef.current = false;
+      try {
+        recorder.resume();
+      } catch {
+        // The fallback below will still finalize the recording from collected chunks.
+      }
+    }
+
+    try {
+      recorder.requestData();
+    } catch {
+      // Some browsers do not support requestData in every recorder state.
+    }
+
+    stopFallbackRef.current = setTimeout(() => {
+      if (recorderRef.current) finalizeRecording();
+    }, 1500);
+
+    try {
+      recorder.stop();
+    } catch {
+      finalizeRecording();
+    }
+  }, [finalizeRecording, isRecording]);
 
   const togglePause = useCallback(() => {
     const recorder = recorderRef.current;

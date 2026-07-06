@@ -1,3 +1,5 @@
+import mime from "mime";
+
 export function canShare(): boolean {
   return (
     typeof navigator !== "undefined" &&
@@ -6,20 +8,26 @@ export function canShare(): boolean {
   );
 }
 
+export function normalizeMimeType(type: string): string {
+  return type.split(";")[0].trim().toLowerCase();
+}
+
 export function extForType(type: string): string {
-  if (type === "image/png") return "png";
-  if (type === "image/webp") return "webp";
-  if (type === "video/webm") return "webm";
-  if (type === "video/mp4") return "mp4";
-  return "jpg";
+  return mime.getExtension(type) ?? "bin";
+}
+
+export function typeForName(name: string): string | null {
+  return mime.getType(name);
 }
 
 export async function shareFile(
   blob: Blob,
   name: string,
+  mimeType = blob.type,
 ): Promise<boolean> {
-  const ext = extForType(blob.type);
-  const file = new File([blob], `${name}.${ext}`, { type: blob.type });
+  const fileType = normalizeMimeType(mimeType || blob.type);
+  const ext = extForType(fileType);
+  const file = new File([blob], `${name}.${ext}`, { type: fileType });
   if (canShare() && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({ title: name, files: [file] });
@@ -28,12 +36,12 @@ export async function shareFile(
       if (e instanceof Error && e.name === "AbortError") return false;
     }
   }
-  downloadBlob(blob, name);
+  downloadBlob(blob, name, fileType);
   return false;
 }
 
-export function downloadBlob(blob: Blob, name: string): void {
-  const ext = extForType(blob.type);
+export function downloadBlob(blob: Blob, name: string, mimeType = blob.type): void {
+  const ext = extForType(mimeType || blob.type);
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

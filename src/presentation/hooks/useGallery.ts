@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { mediaRepository } from "@/data/instances";
 import { MediaItem } from "@/domain/entities/MediaItem";
+import { typeForName } from "@/data/services/WebShareService";
 
 function extractVideoMeta(blob: Blob): Promise<{ width: number; height: number; duration: number }> {
   return new Promise((resolve, reject) => {
@@ -116,10 +117,11 @@ export function useGallery() {
       for (const file of fileArr) {
         try {
           const blob: Blob = file;
+          const mimeType = file.type || typeForName(file.name) || "";
           const id = `import-${Date.now()}-${Math.random().toString(36).slice(2)}`;
           const name = file.name.replace(/\.[^.]+$/, "");
 
-          if (file.type.startsWith("video/")) {
+          if (mimeType.startsWith("video/")) {
             const { width, height, duration } = await extractVideoMeta(blob);
             const item: MediaItem = {
               id,
@@ -129,7 +131,7 @@ export function useGallery() {
               createdAt: new Date(file.lastModified || Date.now()),
               type: "video",
               duration,
-              mimeType: blob.type,
+              mimeType,
             };
             await mediaRepository.save(item, blob);
           } else {
@@ -144,7 +146,7 @@ export function useGallery() {
               height,
               createdAt: new Date(file.lastModified || Date.now()),
               type: "photo",
-              mimeType: blob.type || "image/jpeg",
+              mimeType: mimeType || "image/jpeg",
             };
             await mediaRepository.save(item, blob);
           }

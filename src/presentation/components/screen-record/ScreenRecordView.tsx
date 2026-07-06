@@ -1,5 +1,5 @@
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Monitor, Mic, MicOff, Images, Pause, Play, Square } from "lucide-react";
 import { useScreenRecorder } from "@/presentation/hooks/useScreenRecorder";
@@ -52,6 +52,32 @@ export function ScreenRecordView() {
     clearResult();
     navigate("/gallery");
   }, [clearResult, navigate]);
+
+  useEffect(() => {
+    if (!isRecording) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
+      if (event.code === "Space") {
+        event.preventDefault();
+        togglePause();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        stopRecording();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isRecording, stopRecording, togglePause]);
 
   if (result) {
     return (
@@ -126,31 +152,15 @@ export function ScreenRecordView() {
         ) : (
           <>
             <Monitor className="h-20 w-20 text-zinc-500" />
-            <p className="text-sm text-zinc-400">Enregistrement en cours…</p>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={togglePause}
-                className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-white text-white transition-colors active:bg-white/10"
-              >
-                {isPaused ? (
-                  <Play className="h-6 w-6" />
-                ) : (
-                  <Pause className="h-6 w-6" />
-                )}
-              </button>
-              <button
-                onClick={stopRecording}
-                className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-red-500 transition-colors active:bg-red-500/20"
-              >
-                <Square className="h-7 w-7 fill-red-500 text-red-500" />
-              </button>
-            </div>
+            <p className="text-sm text-zinc-400">
+              {isPaused ? "Enregistrement en pause" : "Enregistrement en cours..."}
+            </p>
           </>
         )}
       </div>
 
       {/* Bottom bar */}
-      <div className="absolute inset-x-0 bottom-0 z-10 bg-linear-to-t from-black/60 to-transparent px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-20">
+      <div className="absolute inset-x-0 bottom-0 z-30 bg-linear-to-t from-black/80 to-transparent px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-20">
         <div className="mx-auto flex max-w-xs items-center justify-between">
           {!isRecording ? (
             <button
@@ -161,7 +171,17 @@ export function ScreenRecordView() {
               <Images className="h-5 w-5" />
             </button>
           ) : (
-            <div className="h-12 w-12" />
+            <button
+              onClick={togglePause}
+              aria-label={isPaused ? "Reprendre l'enregistrement" : "Mettre l'enregistrement en pause"}
+              className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-black/50 text-white backdrop-blur-sm transition-colors active:scale-90 active:bg-white/10"
+            >
+              {isPaused ? (
+                <Play className="h-5 w-5" />
+              ) : (
+                <Pause className="h-5 w-5" />
+              )}
+            </button>
           )}
 
           <button
@@ -174,6 +194,16 @@ export function ScreenRecordView() {
           >
             {micEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
           </button>
+
+          {isRecording && (
+            <button
+              onClick={stopRecording}
+              aria-label="Arrêter l'enregistrement"
+              className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-red-500 bg-black/50 text-red-500 backdrop-blur-sm transition-colors active:scale-90 active:bg-red-500/20"
+            >
+              <Square className="h-5 w-5 fill-red-500" />
+            </button>
+          )}
         </div>
       </div>
     </div>
